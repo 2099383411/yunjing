@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+
+# Node
+node_modules/
+dist/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker volumes
+qdrant_storage/
+postgres/
+sandbox/
+
+# Backups & temp
+*.bak
+*.backup
+*.tar.gz
+frontend_backup_*/
+frontend_nextgen*/
+deploy_*.sh
+deploy_*.tar.gz
+
+# Runtime data
+experiences_*.json
+experience-sources/
+merge_*.py
+index_to_qdrant*.py
+
+# Knowledge base (downloaded separately via setup script)
+knowledge-base/
+!backend/knowledge-base/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+celerybeat-schedule

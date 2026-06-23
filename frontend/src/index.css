@@ -1,0 +1,144 @@
+/* ===== 云镜 · 微步风格重构版 ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ===== 全局过渡 ===== */
+* {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* ===== 登录页背景 ===== */
+.login-bg {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+  position: relative;
+  overflow: hidden;
+}
+.login-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(37,99,235,0.12) 0%, transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(96,165,250,0.08) 0%, transparent 40%);
+  animation: loginBgFloat 20s ease-in-out infinite;
+}
+@keyframes loginBgFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-20px, 20px); }
+}
+
+/* ===== 登录卡片 ===== */
+.login-card {
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+/* ===== 卡片基础样式 ===== */
+.big-screen-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.big-screen-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+/* ===== 仪表盘统计卡片 ===== */
+.dashboard-stat-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.dashboard-stat-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+  border-color: #2563EB !important;
+}
+
+/* ===== 状态指示灯 ===== */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot.running { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+.status-dot.pending { background: #F59E0B; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+.status-dot.failed { background: #EF4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+.status-dot.idle { background: #94A3B8; }
+
+/* ===== 渗透阶段标签 ===== */
+.phase-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.phase-tag.asset { background: #EFF6FF; color: #1D4ED8; }
+.phase-tag.scan { background: #F0FDF4; color: #047857; }
+.phase-tag.exploit { background: #FEF2F2; color: #B91C1C; }
+.phase-tag.post { background: #F5F3FF; color: #6D28D9; }
+
+/* ===== 快速操作卡片 ===== */
+.quick-action-card {
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  border: 1px solid #E2E8F0;
+}
+.quick-action-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+}
+
+/* ===== 数字动画 ===== */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stat-value {
+  animation: countUp 0.6s ease-out;
+}

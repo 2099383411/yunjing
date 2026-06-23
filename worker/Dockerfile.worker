@@ -1,0 +1,50 @@
+# ============================================================
+# 云镜 Worker — Celery 任务编排器（不含渗透工具）
+# 渗透工具全部在 Kali Sandbox（yunjing-sbx）中隔离运行
+# 通过 docker exec 调用
+# ============================================================
+
+FROM ubuntu:24.04
+
+LABEL maintainer="yunjing team"
+LABEL description="CloudMirror Worker - Celery orchestrator (no pentest tools, uses Kali Sandbox)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+
+# ─── 系统基础 ───────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
+    python3-pip \
+    # Docker CLI — 用于 docker exec 调用 Kali Sandbox
+    docker.io \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ─── Python 虚拟环境 ────────────────────────────────────
+RUN python3.12 -m venv /venv
+ENV PATH=/venv/bin:$PATH
+
+# ─── Celery + 数据库驱动 + 报告生成 ─────────────────────
+COPY requirements-worker.txt /tmp/requirements-worker.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ \
+    -r /tmp/requirements-worker.txt
+
+# ─── 应用代码 ───────────────────────────────────────────
+COPY app/ /app/
+# 创建用于持久化 nuclei 模板的目录
+RUN mkdir -p /data/nuclei-templates /data/tools-output /data/wordlists
+
+# ─── 启动脚本 ───────────────────────────────────────────
+COPY entrypoint-worker.sh /entrypoint-worker.sh
+RUN chmod +x /entrypoint-worker.sh
+
+WORKDIR /app
+
+ENTRYPOINT ["/entrypoint-worker.sh"]
+
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", "-Q", "scan", "-E", "--concurrency=4"]

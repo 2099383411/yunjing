@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nmap whatweb && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates && \
+    wget -q https://ghproxy.com/https://github.com/projectdiscovery/nuclei/releases/download/v3.3.0/nuclei_3.3.0_linux_amd64.zip && \
+    unzip -q nuclei_3.3.0_linux_amd64.zip -d /usr/local/bin/ && \
+    chmod +x /usr/local/bin/nuclei && rm nuclei_3.3.0_linux_amd64.zip
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+COPY . .
+
+RUN nuclei -ut -ud /root/nuclei-templates || true
+
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", "--concurrency=2"]

@@ -1,0 +1,359 @@
+# ============================================================
+# 云镜·安全检测助手 — Docker Compose (9 服务)
+# ============================================================
+# 用法:
+#   1. cp .env.example .env && vim .env   # 修改配置
+#   2. docker compose build
+#   3. docker compose up -d
+#   4. 访问 http://localhost
+# ============================================================
+
+services:
+  # ─── 反向代理 ──────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: yunjing-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 128m
+
+  # ─── 前端 (React SPA) ─────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend_app
+    volumes:
+      - ./frontend_app/dist:/usr/share/nginx/html
+    container_name: yunjing-frontend
+    ports:
+      - "3000"
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 256m
+
+  # ─── 后端 (FastAPI) ───────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yunjing-backend
+    ports:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-yunjing}:${POSTGRES_PASSWORD:-yunjing123}@postgres:5432/${POSTGRES_DB:-yunjing}
+      - REDIS_URL=redis://redis:6379/1
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - AGENT_URL=http://agent:8001
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - BGE_SERVICE_URL=http://yunjing-bge:8000
+      - QDRANT_URL=http://yunjing-qdrant:6333
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    mem_limit: 1g
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/skills:/app/data/skills
+      - ./data/reports:/app/data/reports
+      - ./backend/app/engine:/app/app/engine
+      - ./backend/knowledge-base:/app/app/data/knowledge-base
+      - ./backend/app/engine/learning_data.json:/app/app/engine/learning_data.json
+
+      # ── 绑定挂载新模块 (开发热重载) ──
+      - ./backend/app/api:/app/app/api
+      - ./backend/app/services:/app/app/services
+      - ./backend/app/grounding:/app/app/grounding
+      - ./backend/app/models:/app/app/models
+
+      - ./backend/app/main.py:/app/app/main.py
+      - ./backend/app/database.py:/app/app/database.py
+      - ./backend/alembic:/app/alembic
+
+  # ─── [新增] AI 智能体引擎 ─────────────────────────────
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile.agent
+    container_name: yunjing-agent
+    ports:
+      - "8001"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_BASE=${LLM_API_BASE:-https://api.deepseek.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    mem_limit: 2g
+
+  # ─── [新增] Celery Worker ─────────────────────────────
+  # 职责：接收扫描任务 → docker exec 到 Kali Sandbox 执行 → 结果写 DB
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile.worker
+    container_name: yunjing-worker
+    environment:
+      - PYTHONPATH=/
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-yunjing}:${POSTGRES_PASSWORD:-yunjing123}@postgres:5432/${POSTGRES_DB:-yunjing}
+      - NUCLEI_TEMPLATES_DIR=/data/nuclei-templates
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-4}
+      - WORKER_MAX_TASKS=${WORKER_MAX_TASKS:-50}
+      - WORKER_TASK_TIMEOUT=${WORKER_TASK_TIMEOUT:-3600}
+      - WORKER_QUEUE=${WORKER_QUEUE:-scan,celery}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/nuclei-templates:/data/nuclei-templates
+      - ./data/tools-output:/data/tools-output
+      # Docker socket — 通过 docker exec 调用 Kali Sandbox
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/wordlists:/data/wordlists
+      - ./worker/app:/app
+      - ./worker/entrypoint-worker-fixed.sh:/entrypoint-worker.sh:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      sandbox:
+        condition: service_started
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    mem_limit: 1g
+
+  # ─── [新增] Kali Sandbox (隔离扫描执行环境) ───────────
+  sandbox:
+    image: yunjing-sandbox:latest
+    container_name: yunjing-sbx
+    environment:
+      - PATH=/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    networks:
+      - yunjing-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/nuclei-templates:/data/nuclei-templates
+      - ./data/tools-output:/data/tools-output
+      - ./data/wordlists:/data/wordlists
+      - ./worker/entrypoint-worker-fixed.sh:/entrypoint-worker.sh:ro
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    mem_limit: 4g
+
+  # ─── PostgreSQL ────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: yunjing-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-yunjing}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-yunjing123}
+      - POSTGRES_DB=${POSTGRES_DB:-yunjing}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432"
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yunjing} -d ${POSTGRES_DB:-yunjing}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 512m
+
+  # ─── Redis ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: yunjing-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6379"
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 256m
+
+  # ─── MinIO (报告存储) ──────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: yunjing-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - ./data/minio:/data
+    ports:
+      - "9000"
+      - "9001"
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 512m
+
+# ─── 网络 ────────────────────────────────────────────────
+  # ─── BGE Embedding 服务 ──────────────────────────────
+  bge:
+    build:
+      context: ./bge-embedder
+      dockerfile: Dockerfile
+    container_name: yunjing-bge
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-modeset:/dev/nvidia-modeset
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+    ports:
+      - "8000"
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    mem_limit: 4g
+    environment:
+      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - /lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1
+      - /lib/x86_64-linux-gnu/libcuda.so:/usr/lib/x86_64-linux-gnu/libcuda.so
+      - /lib/x86_64-linux-gnu/libcudadebugger.so.1:/usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+
+  # ─── Qdrant 向量数据库 ────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: yunjing-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./data/qdrant_storage:/qdrant/storage
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 1g
+
+
+  # ─── GoPhish 社工钓鱼平台 ────────────────────────────
+  gophish:
+    image: gophish/gophish:latest
+    container_name: yunjing-gophish
+    ports:
+      - "3333:3333"
+      - "8083:80"
+    volumes:
+      - ./data/gophish:/opt/gophish/data
+    networks:
+      - yunjing-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    mem_limit: 256m
+networks:
+  yunjing-net:
+    driver: bridge
+    name: yunjing-net
