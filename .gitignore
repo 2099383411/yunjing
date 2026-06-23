@@ -41,15 +41,10 @@ frontend_nextgen*/
 deploy_*.sh
 deploy_*.tar.gz
 
-# Runtime data
-experiences_*.json
-experience-sources/
+# Runtime data (temp scripts only)
 merge_*.py
 index_to_qdrant*.py
-
-# Knowledge base (downloaded separately via setup script)
-knowledge-base/
-!backend/knowledge-base/.gitkeep
+worker/app/data/sessions.json
 
 # OS
 .DS_Store
