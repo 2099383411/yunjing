@@ -30,7 +30,11 @@ const SessionManagerPage: React.FC = () => {
           setSessions(Array.isArray(res.data.sessions) ? res.data.sessions : []);
         } else {
           // Fall back to extracting from latest task
+<<<<<<< HEAD
           const taskRes = await request.get("/tasks", { params: { page: 1, page_size: 5 } });
+=======
+          const taskRes = await request.get("/tasks", { params: { offset: 0, limit: 5 } });
+>>>>>>> server/master
           const tasks = taskRes?.data?.items || taskRes?.data || [];
           const tasksArr = Array.isArray(tasks) ? tasks : [];
           const allSessions: any[] = [];

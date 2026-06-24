@@ -14,7 +14,11 @@ NOTIFICATION_CONFIG_KEY = "notification_channels"
 
 
 @router.get("/channels")
+<<<<<<< HEAD
 async def list_channels():
+=======
+async def list_channels(user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """获取通知渠道配置"""
     async with AsyncSessionLocal() as sess:
         result = await sess.execute(
@@ -35,7 +39,11 @@ async def list_channels():
 
 
 @router.put("/channels")
+<<<<<<< HEAD
 async def update_channels(data: dict):
+=======
+async def update_channels(data: dict, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """更新通知渠道配置"""
     channels = data.get("channels", [])
     async with AsyncSessionLocal() as sess:
@@ -52,7 +60,11 @@ async def update_channels(data: dict):
 
 
 @router.post("/channels/test")
+<<<<<<< HEAD
 async def test_channel(data: dict):
+=======
+async def test_channel(data: dict, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """测试通知渠道连接"""
     channel_type = data.get("type", "")
     target = data.get("target", "")

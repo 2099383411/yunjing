@@ -351,7 +351,11 @@ class LearningEngine:
                 continue
             results.append(entry)
 
+<<<<<<< HEAD
         results.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+=======
+        results.sort(key=lambda x: float(x.get("created_at", 0) if isinstance(x.get("created_at"), (int, float)) else 0), reverse=True)
+>>>>>>> server/master
         return results[:limit]
 
     def search_experiences_semantic(self, query: str,
@@ -976,5 +980,9 @@ class LearningEngine:
                 "source": c["source"],
             })
 
+<<<<<<< HEAD
         results.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+=======
+        results.sort(key=lambda x: float(x.get("created_at", 0) if isinstance(x.get("created_at"), (int, float)) else 0), reverse=True)
+>>>>>>> server/master
         return results

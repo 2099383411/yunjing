@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+import os
+>>>>>>> server/master
 """
 云镜 Agent — AI 智能体编排引擎 V2
 技能感知 + 深度意图识别 + 动态 DAG 编排 + 红线安全规则
@@ -9,7 +13,12 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+<<<<<<< HEAD
 from fastapi import FastAPI, HTTPException
+=======
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+>>>>>>> server/master
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 import httpx
@@ -21,11 +30,30 @@ logger = logging.getLogger("yunjing-agent")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.deepseek.com/v1")
+<<<<<<< HEAD
 LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash")
+=======
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+>>>>>>> server/master
 
 # ── FastAPI ───────────────────────────────────────────────
 app = FastAPI(title="云镜 Agent — AI 智能体 V2", version="0.4.0")
 
+<<<<<<< HEAD
+=======
+# ── Basic Auth ────────────────────────────────────────────
+_security = HTTPBasic()
+
+async def verify_basic_auth(credentials: HTTPBasicCredentials = Depends(_security)):
+    """简单的基本认证，用于保护 Agent API"""
+    agent_username = os.getenv("AGENT_USER", "admin")
+    agent_password = os.getenv("AGENT_PASSWORD", "yunjing123")
+    if credentials.username != agent_username or credentials.password != agent_password:
+        raise HTTPException(status_code=401, detail="Unauthorized",
+                            headers={"WWW-Authenticate": "Basic"})
+    return credentials
+
+>>>>>>> server/master
 
 # ── 技能知识库（启动时从后端加载） ──────────────────────
 _skills_cache: list[dict] = []
@@ -435,7 +463,11 @@ async def load_skills():
             for l_attempt in range(5):
                 login_resp = await client.post(
                     f"{BACKEND_URL}/api/auth/login",
+<<<<<<< HEAD
                     json={"username": "admin", "password": "yunjing123"},
+=======
+                    json={"username": "admin", "password": os.getenv("AGENT_BACKEND_PASSWORD", "yunjing123")},
+>>>>>>> server/master
                 )
                 if login_resp.status_code == 200:
                     break
@@ -491,13 +523,21 @@ async def health():
 
 
 @app.get("/skills")
+<<<<<<< HEAD
 async def get_skills():
+=======
+async def get_skills(credentials=Depends(verify_basic_auth)):
+>>>>>>> server/master
     """返回当前缓存的技能列表"""
     return {"skills": _skills_cache}
 
 
 @app.post("/skills/reload")
+<<<<<<< HEAD
 async def reload_skills():
+=======
+async def reload_skills(credentials=Depends(verify_basic_auth)):
+>>>>>>> server/master
     """手动触发技能重载"""
     await load_skills()
     return ReloadResponse(
@@ -508,7 +548,11 @@ async def reload_skills():
 
 
 @app.post("/chat")
+<<<<<<< HEAD
 async def chat(req: ChatRequest):
+=======
+async def chat(req: ChatRequest, credentials=Depends(verify_basic_auth)):
+>>>>>>> server/master
     """处理用户消息 — 技能感知的 AI 对话"""
     if not LLM_API_KEY:
         raise HTTPException(status_code=500, detail="LLM_API_KEY 未配置")
@@ -533,7 +577,11 @@ async def chat(req: ChatRequest):
         )
 
         content = response.choices[0].message.content or ""
+<<<<<<< HEAD
         reasoning = response.choices[0].message.reasoning_content or ""
+=======
+        reasoning = getattr(response.choices[0].message, "reasoning_content", "") or ""
+>>>>>>> server/master
 
         # 尝试解析 JSON 扫描计划
         plan = _try_parse_json(content)

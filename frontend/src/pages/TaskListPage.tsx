@@ -47,7 +47,11 @@ import CloudServerOutlined from "@ant-design/icons/es/icons/CloudServerOutlined"
 import LockOutlined from "@ant-design/icons/es/icons/LockOutlined";
 import FolderOpenOutlined from "@ant-design/icons/es/icons/FolderOpenOutlined";
 import CodeOutlined from "@ant-design/icons/es/icons/CodeOutlined";
+<<<<<<< HEAD
 import LinkOutlined from "@ant-design/icons/es/icons/LinkOutlined";;
+=======
+import LinkOutlined from "@ant-design/icons/es/icons/LinkOutlined"
+>>>>>>> server/master
 
 const {Title, Text} = Typography;
 

@@ -44,7 +44,11 @@ import LoadingOutlined from "@ant-design/icons/es/icons/LoadingOutlined";
 import RobotOutlined from "@ant-design/icons/es/icons/RobotOutlined";
 import StarOutlined from "@ant-design/icons/es/icons/StarOutlined";
 import ExperimentOutlined from "@ant-design/icons/es/icons/ExperimentOutlined";
+<<<<<<< HEAD
 import WarningOutlined from "@ant-design/icons/es/icons/WarningOutlined";;
+=======
+import WarningOutlined from "@ant-design/icons/es/icons/WarningOutlined"
+>>>>>>> server/master
 import SafetyOutlined from "@ant-design/icons/es/icons/SafetyOutlined";
 
 const {Title, Text} = Typography;

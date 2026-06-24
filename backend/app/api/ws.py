@@ -1,6 +1,10 @@
 """WebSocket endpoint for real-time scan progress push"""
 import json, logging
+<<<<<<< HEAD
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+=======
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+>>>>>>> server/master
 import redis.asyncio as aioredis
 
 router = APIRouter()
@@ -8,8 +12,32 @@ logger = logging.getLogger(__name__)
 
 
 @router.websocket("/ws/scan/{task_id}")
+<<<<<<< HEAD
 async def scan_progress_ws(websocket: WebSocket, task_id: str):
     """Real-time scan progress via Redis Pub/Sub relay"""
+=======
+async def scan_progress_ws(websocket: WebSocket, task_id: str, token: str = ""):
+    """Real-time scan progress via Redis Pub/Sub relay"""
+    # Validate token
+    from app.api.deps import get_current_user
+    from fastapi import HTTPException
+    from fastapi.security import HTTPAuthorizationCredentials
+    try:
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token) if token else None
+        if not creds:
+            # Try to get token from query params
+            token_from_query = websocket.query_params.get("token", "")
+            if token_from_query:
+                creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token_from_query)
+        if creds:
+            from jose import jwt
+            from app.config import settings
+            payload = jwt.decode(creds.credentials, settings.JWT_SECRET, algorithms=["HS256"])
+            logger.info(f"WS authenticated user {payload.get('sub')}")
+    except Exception as e:
+        logger.warning(f"WS auth failed (continuing): {e}")
+
+>>>>>>> server/master
     await websocket.accept()
     logger.info(f"WS connected for scan {task_id}")
 

@@ -526,7 +526,11 @@ const OrchestrationPage: React.FC = () => {
  setLoading(true);
  try {
  const res = await request.get("/tasks/", {
+<<<<<<< HEAD
  params: {page_size: 50},
+=======
+ params: {limit: 50},
+>>>>>>> server/master
 });
  let raw = res.data;
  if (!Array.isArray(raw)) raw = raw?.tasks || raw?.items || raw?.results || [];

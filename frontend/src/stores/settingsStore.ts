@@ -1,5 +1,9 @@
 import { create } from "zustand";
+<<<<<<< HEAD
 import client from "../api/client";
+=======
+import client from "../api/request";
+>>>>>>> server/master
 
 interface SettingsState {
   settings: Record<string, string>;

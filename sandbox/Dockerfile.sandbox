@@ -1,0 +1,60 @@
+# ============================================================
+# 云镜 Kali Sandbox — 隔离的渗透测试执行环境
+# 所有高危操作都在此容器中运行，通过 Worker 的 docker exec 调用
+# ============================================================
+
+FROM kalilinux/kali-rolling
+
+LABEL maintainer="yunjing team"
+LABEL description="CloudMirror Kali Sandbox - Isolated pentest execution environment"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+
+# ─── 清华源 ─────────────────────────────────────────────
+RUN sed -i 's|http://http.kali.org|http://mirrors.tuna.tsinghua.edu.cn/kali|g' /etc/apt/sources.list.d/kali.sources
+
+# ─── 基础工具 ───────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git unzip tar gzip \
+    build-essential python3 python3-pip \
+    golang-go libpcap-dev libssl-dev openssh-client \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ─── Kali 渗透工具 ─────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nmap nikto hydra john sqlmap dirb wfuzz whatweb \
+    tcpdump netcat-openbsd dnsutils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ─── Go 工具 ───────────────────────────────────────────
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/lib/go-1.26/bin:/usr/bin:/usr/local/bin
+ENV GOPROXY=https://goproxy.cn,direct
+RUN mkdir -p $GOPATH/bin
+
+RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
+    go install github.com/OJ/gobuster/v3@latest && \
+    go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
+    go install github.com/ffuf/ffuf/v2@latest && \
+    go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
+    go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest && \
+    go install -v github.com/projectdiscovery/katana/cmd/katana@latest
+
+# ─── nuclei 模板 → 挂载点 ──────────────────────────────
+ENV NUCLEI_TEMPLATES_DIR=/data/nuclei-templates
+RUN mkdir -p /data && ln -sf /data/nuclei-templates /root/nuclei-templates
+
+# ─── wordlists ─────────────────────────────────────────
+RUN mkdir -p /usr/share/wordlists && \
+    ln -sf /usr/share/dirb/wordlists/common.txt /usr/share/wordlists/dirb_common.txt
+
+WORKDIR /data
+
+CMD ["tail", "-f", "/dev/null"]
+
+# ─── Metasploit + searchsploit ────────────────────────────
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    metasploit-framework exploitdb \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*

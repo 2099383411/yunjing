@@ -11,7 +11,11 @@ import SafetyOutlined from "@ant-design/icons/es/icons/SafetyOutlined";
 import UserOutlined from "@ant-design/icons/es/icons/UserOutlined";
 import LockOutlined from "@ant-design/icons/es/icons/LockOutlined";
 import EyeInvisibleOutlined from "@ant-design/icons/es/icons/EyeInvisibleOutlined";
+<<<<<<< HEAD
 import EyeTwoTone from "@ant-design/icons/es/icons/EyeTwoTone";;
+=======
+import EyeTwoTone from "@ant-design/icons/es/icons/EyeTwoTone"
+>>>>>>> server/master
 
 const {Title, Text} = Typography;
 

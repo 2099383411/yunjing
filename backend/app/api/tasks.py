@@ -8,8 +8,15 @@ from app.models.task import ScanTask, TaskStatus
 from app.models.vulnerability import Vulnerability
 import uuid
 from pydantic import BaseModel
+<<<<<<< HEAD
 from app.services.scan_tools import create_and_start_scan
 import os, json, asyncio
+=======
+from app.api.deps import get_current_user
+from app.models.user import User
+from app.services.scan_tools import create_and_start_scan
+import json
+>>>>>>> server/master
 
 router = APIRouter()
 
@@ -27,6 +34,10 @@ class CreateTaskRequest(BaseModel):
 
 @router.get("/")
 async def list_tasks(
+<<<<<<< HEAD
+=======
+    user: User = Depends(get_current_user),
+>>>>>>> server/master
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
     status: str | None = None,
@@ -57,7 +68,11 @@ async def list_tasks(
 
 
 @router.post("/")
+<<<<<<< HEAD
 async def create_task(data: CreateTaskRequest):
+=======
+async def create_task(data: CreateTaskRequest, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """手动配置页创建扫描任务"""
     tasks_created = []
     for target in data.targets:
@@ -70,7 +85,11 @@ async def create_task(data: CreateTaskRequest):
 
 
 @router.get("/{task_id}")
+<<<<<<< HEAD
 async def get_task(task_id: str):
+=======
+async def get_task(task_id: str, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """获取任务详情（含结果）"""
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(ScanTask).where(ScanTask.id == task_id))
@@ -88,7 +107,11 @@ async def get_task(task_id: str):
 
 
 @router.delete("/{task_id}")
+<<<<<<< HEAD
 async def delete_task(task_id: str):
+=======
+async def delete_task(task_id: str, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     async with AsyncSessionLocal() as sess:
         await sess.execute(sa_delete(ScanTask).where(ScanTask.id == task_id))
         await sess.commit()
@@ -96,7 +119,11 @@ async def delete_task(task_id: str):
 
 
 @router.get("/{task_id}/vulnerabilities")
+<<<<<<< HEAD
 async def get_task_vulnerabilities(task_id: str):
+=======
+async def get_task_vulnerabilities(task_id: str, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """获取任务的漏洞列表"""
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -121,7 +148,11 @@ async def get_task_vulnerabilities(task_id: str):
 
 
 @router.post("/{task_id}/cancel")
+<<<<<<< HEAD
 async def cancel_task(task_id: str):
+=======
+async def cancel_task(task_id: str, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """取消一个正在运行的任务"""
     async with AsyncSessionLocal() as sess:
         task = await sess.get(ScanTask, task_id)
@@ -138,7 +169,11 @@ async def cancel_task(task_id: str):
 
 
 @router.get("/{task_id}/report")
+<<<<<<< HEAD
 async def get_round_report(task_id: str):
+=======
+async def get_round_report(task_id: str, user: User = Depends(get_current_user)):
+>>>>>>> server/master
     """获取当前任务的轮次报告"""
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(ScanTask).where(ScanTask.id == task_id))

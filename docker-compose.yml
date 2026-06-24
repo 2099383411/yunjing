@@ -16,7 +16,10 @@ services:
     ports:
       - "${NGINX_PORT:-80}:80"
     volumes:
+<<<<<<< HEAD
       - /var/run/docker.sock:/var/run/docker.sock
+=======
+>>>>>>> server/master
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - frontend
@@ -34,9 +37,15 @@ services:
   # ─── 前端 (React SPA) ─────────────────────────────────
   frontend:
     build:
+<<<<<<< HEAD
       context: ./frontend_app
     volumes:
       - ./frontend_app/dist:/usr/share/nginx/html
+=======
+      context: ./frontend
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+>>>>>>> server/master
     container_name: yunjing-frontend
     ports:
       - "3000"
@@ -86,7 +95,10 @@ services:
         max-file: "5"
     mem_limit: 1g
     volumes:
+<<<<<<< HEAD
       - /var/run/docker.sock:/var/run/docker.sock
+=======
+>>>>>>> server/master
       - ./data/skills:/app/data/skills
       - ./data/reports:/app/data/reports
       - ./backend/app/engine:/app/app/engine
@@ -154,7 +166,10 @@ services:
       - ./data/nuclei-templates:/data/nuclei-templates
       - ./data/tools-output:/data/tools-output
       # Docker socket — 通过 docker exec 调用 Kali Sandbox
+<<<<<<< HEAD
       - /var/run/docker.sock:/var/run/docker.sock
+=======
+>>>>>>> server/master
       - ./data/wordlists:/data/wordlists
       - ./worker/app:/app
       - ./worker/entrypoint-worker-fixed.sh:/entrypoint-worker.sh:ro
@@ -320,8 +335,13 @@ services:
     image: qdrant/qdrant:latest
     container_name: yunjing-qdrant
     ports:
+<<<<<<< HEAD
       - "6333:6333"
       - "6334:6334"
+=======
+      - "6333"
+      - "6334"
+>>>>>>> server/master
     volumes:
       - ./data/qdrant_storage:/qdrant/storage
     networks:
@@ -340,8 +360,13 @@ services:
     image: gophish/gophish:latest
     container_name: yunjing-gophish
     ports:
+<<<<<<< HEAD
       - "3333:3333"
       - "8083:80"
+=======
+      - "3333"
+      - "8083"
+>>>>>>> server/master
     volumes:
       - ./data/gophish:/opt/gophish/data
     networks:
