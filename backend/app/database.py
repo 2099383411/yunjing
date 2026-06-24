@@ -1,7 +1,7 @@
 """数据库引擎与会话管理"""
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 import logging
-logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+for log_name in ["sqlalchemy", "sqlalchemy.engine", "sqlalchemy.engine.Engine", "sqlalchemy.pool"]: logging.getLogger(log_name).setLevel(logging.WARNING)
 from app.config import settings
 
 engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG, pool_size=10, max_overflow=20)
