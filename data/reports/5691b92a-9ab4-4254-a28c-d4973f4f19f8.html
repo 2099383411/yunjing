@@ -1,0 +1,374 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>Security Report - http://192.168.1.180:8080</title>
+<style>
+  @page { size: A4; margin: 20mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; color: #374151; background: #F3F4F6; margin: 0; padding: 20px; }
+  .report { max-width: 210mm; margin: 0 auto; background: #FFFFFF; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 40px; }
+  .cover { text-align: center; padding: 80px 40px; border-bottom: 3px solid #0F172A; margin-bottom: 30px; }
+  .cover h1 { font-size: 28px; color: #0F172A; margin-bottom: 8px; }
+  .cover h2 { font-size: 18px; color: #64748B; font-weight: 400; margin-bottom: 24px; }
+  .cover .meta { color: #94A3B8; font-size: 10px; }
+  h2.section { font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin: 30px 0 16px; }
+  h3.sub { font-size: 14px; color: #1E293B; margin: 16px 0 8px; }
+  .sev-badge { display: inline-block; padding: 2px 10px; font-size: 11px; font-weight: 700; color: #fff; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #0F172A; color: #fff; padding: 8px 12px; text-align: left; }
+  td { padding: 8px 12px; border-bottom: 1px solid #E5E7EB; }
+  tr:hover td { background: #F9FAFB; }
+  .finding { border: 1px solid #E5E7EB; border-radius: 8px; padding: 16px; margin: 12px 0; background: #FAFAFA; }
+  .finding h4 { margin: 0 0 8px; font-size: 14px; }
+  .finding .desc { font-size: 12px; line-height: 1.6; color: #4B5563; }
+  .finding .fix { font-size: 12px; color: #059669; border-left: 3px solid #059669; padding-left: 12px; margin: 8px 0; }
+  .session-line { font-family: 'Courier New', monospace; font-size: 11px; background: #F3F4F6; padding: 4px 8px; border-radius: 4px; margin: 4px 0; }
+  @media print { body { background: #fff; padding: 0; } .report { box-shadow: none; padding: 0; } }
+</style>
+</head><body>
+<div class="report">
+<div class="cover"><h1>YUNJING SECURITY</h1><h2>Penetration Test Report</h2>
+<p class="meta">Target: http://192.168.1.180:8080 | 2026-06-13 | ada7dd91-be4</p>
+<p class="meta" style="color:#DC2626;font-weight:700">CONFIDENTIAL</p></div>
+
+<h2 class="section">1. Executive Summary</h2>
+<p style="font-size:12px;line-height:1.8">本次渗透测试目标为 http://192.168.1.180:8080。<br>在测试过程中共发现 52 个安全漏洞，其中严重 1 个、高危 0 个、中危 30 个、低危 0 个。<br>高危及以上漏洞共计 1 个，建议优先修复。<br>成功获取 66 个会话控制权（ssh:192.168.1.180, ssh:192.168.1.180, http:192.168.1.180, ssh:192.168.1.180, http:192.168.1.180），表明已具备在目标网络内横向移动的能力。<br>重点风险：<br>  [1] DVWA Default Login（严重级）<br>  [2] Sensitive Configuration Files Listing - Detect（中危级）<br>  [3] Target IP:          192.168.1.180（中危级）<br></p>
+<table><tr><th>Severity</th><th>Count</th><th>Percentage</th></tr>
+<tr><td>Critical</td><td>1</td><td>1.9%</td></tr><tr><td>High</td><td>0</td><td>0.0%</td></tr><tr><td>Medium</td><td>30</td><td>57.7%</td></tr><tr><td>Low</td><td>0</td><td>0.0%</td></tr><tr><td>Info</td><td>21</td><td>40.4%</td></tr></table>
+
+<h2 class="section">2. CVSS Risk Rating System</h2>
+<p style="font-size:12px">Vulnerabilities are rated using CVSS v3.1. Scores range from 0.0 (None) to 10.0 (Critical), based on Attack Vector, Complexity, Privileges, User Interaction, Scope, and Impact on CIA triad.</p>
+<table><tr><th>Rating</th><th>Score Range</th><th>Description</th></tr>
+<tr><td>严重 (Critical)</td><td>9.0 - 10.0</td><td>攻击者可以完全控制系统，造成严重数据泄露或服务中断</td></tr><tr><td>高危 (High)</td><td>7.0 - 8.9</td><td>攻击者可以获得系统关键控制权或访问敏感数据</td></tr><tr><td>中危 (Medium)</td><td>4.0 - 6.9</td><td>攻击者可以获取有限信息或造成部分影响</td></tr><tr><td>低危 (Low)</td><td>0.1 - 3.9</td><td>攻击者仅能获取极小量非敏感信息</td></tr><tr><td>信息 (Info)</td><td>0.0</td><td>无直接安全风险，但可作为攻击辅助信息</td></tr></table>
+
+<h2 class="section">3. Findings Summary</h2>
+<p>Total vulnerabilities found: <strong>52</strong></p>
+<table><tr><th>#</th><th>Vulnerability</th><th>Target</th></tr><tr><td style='background:#F05050;color:#fff'>CRITICAL</td><td>DVWA Default Login</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Sensitive Configuration Files Listing - Detect</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Target IP:          192.168.1.180</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Target Hostname:    192.168.1.180</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Target Port:        8080</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Platform:           Linux/Unix</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Start Time:         2026-06-13 09:15:16 (GMT0)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Server: Apache/2.4.25 (Debian)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[95] /: Cookie PHPSESSID created without the httponly flag. </td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[95] /: Cookie security created without the httponly flag. S</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>No CGI Directories found (use '-C all' to force check all po</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[600050] Apache/2.4.25 appears to be outdated (current is at</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[013587] /: Suggested security header missing: permissions-p</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[013587] /: Suggested security header missing: x-content-typ</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[013587] /: Suggested security header missing: referrer-poli</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[013587] /: Suggested security header missing: content-secur</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[013587] /: Suggested security header missing: strict-transp</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[750500] /config/: Directory indexing found.</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[000998] /config/: Configuration information may be availabl</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[750500] /docs/: Directory indexing found.</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[006333] /login.php: Admin login page/section found.</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[007224] /.gitignore: .gitignore file found. It is possible </td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[007342] /: X-Frame-Options header is deprecated and was rep</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>[007352] /: The X-Content-Type-Options header is not set. Th</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>4439 requests: 16 errors and 15 items reported on the remote</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>End Time:           2026-06-13 09:20:40 (GMT0) (324 seconds)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>1 host(s) tested</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Start Time:         2026-06-13 09:23:11 (GMT0)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>End Time:           2026-06-13 09:28:35 (GMT0) (324 seconds)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>Start Time:         2026-06-13 09:30:38 (GMT0)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#EAB308;color:#fff'>MEDIUM</td><td>End Time:           2026-06-13 09:36:02 (GMT0) (324 seconds)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180/api</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180/api/</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180/assets</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180/assets/</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180/ws</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180/ws/</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/config</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/config/</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/docs</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/docs/</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/external</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/external/</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/favicon.ico</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/php.ini</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/robots.txt</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>Dir: http://192.168.1.180:8080/server-status</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>API: /api @ http://192.168.1.180:80 (HTTP 301)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>API: /swagger @ http://192.168.1.180:80 (HTTP 200)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>API: /openapi.json @ http://192.168.1.180:80 (HTTP 200)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>API: /graphql @ http://192.168.1.180:80 (HTTP 200)</td><td>http://192.168.1.180:8080</td></tr><tr><td style='background:#94A3B8;color:#fff'>INFO</td><td>API: /api/health @ http://192.168.1.180:80 (HTTP 200)</td><td>http://192.168.1.180:8080</td></tr></table>
+
+<h2 class="section">4. Vulnerability Details</h2>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#F05050'>CRITICAL</span> #1 DVWA Default Login</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Damn Vulnerable Web App (DVWA) is a test application for security professionals. The hard coded credentials are part of a security testing scenario.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #2 Sensitive Configuration Files Listing - Detect</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Listing of sensitive configuration files containing items such as usernames, passwords, and IP addresses was detected.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #3 Target IP:          192.168.1.180</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Target IP:          192.168.1.180</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #4 Target Hostname:    192.168.1.180</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Target Hostname:    192.168.1.180</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #5 Target Port:        8080</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Target Port:        8080</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #6 Platform:           Linux/Unix</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Platform:           Linux/Unix</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #7 Start Time:         2026-06-13 09:15:16 (GMT0)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Start Time:         2026-06-13 09:15:16 (GMT0)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #8 Server: Apache/2.4.25 (Debian)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Server: Apache/2.4.25 (Debian)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #9 [95] /: Cookie PHPSESSID created without the httponly flag. See: https</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[95] /: Cookie PHPSESSID created without the httponly flag. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #10 [95] /: Cookie security created without the httponly flag. See: https:</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[95] /: Cookie security created without the httponly flag. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #11 No CGI Directories found (use '-C all' to force check all possible dir</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>No CGI Directories found (use '-C all' to force check all possible dirs). CGI tests skipped.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #12 [600050] Apache/2.4.25 appears to be outdated (current is at least 2.4</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[600050] Apache/2.4.25 appears to be outdated (current is at least 2.4.66).</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #13 [013587] /: Suggested security header missing: permissions-policy. See</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[013587] /: Suggested security header missing: permissions-policy. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #14 [013587] /: Suggested security header missing: x-content-type-options.</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[013587] /: Suggested security header missing: x-content-type-options. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #15 [013587] /: Suggested security header missing: referrer-policy. See: h</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[013587] /: Suggested security header missing: referrer-policy. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #16 [013587] /: Suggested security header missing: content-security-policy</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[013587] /: Suggested security header missing: content-security-policy. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #17 [013587] /: Suggested security header missing: strict-transport-securi</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[013587] /: Suggested security header missing: strict-transport-security. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #18 [750500] /config/: Directory indexing found.</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[750500] /config/: Directory indexing found.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #19 [000998] /config/: Configuration information may be available remotely</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[000998] /config/: Configuration information may be available remotely.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #20 [750500] /docs/: Directory indexing found.</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[750500] /docs/: Directory indexing found.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #21 [006333] /login.php: Admin login page/section found.</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[006333] /login.php: Admin login page/section found.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #22 [007224] /.gitignore: .gitignore file found. It is possible to grasp t</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[007224] /.gitignore: .gitignore file found. It is possible to grasp the directory structure.</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #23 [007342] /: X-Frame-Options header is deprecated and was replaced with</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[007342] /: X-Frame-Options header is deprecated and was replaced with the Content-Security-Policy HTTP header with the frame-ancestors directive. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #24 [007352] /: The X-Content-Type-Options header is not set. This could a</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>[007352] /: The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type. See: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #25 4439 requests: 16 errors and 15 items reported on the remote host</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>4439 requests: 16 errors and 15 items reported on the remote host</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #26 End Time:           2026-06-13 09:20:40 (GMT0) (324 seconds)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>End Time:           2026-06-13 09:20:40 (GMT0) (324 seconds)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #27 1 host(s) tested</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>1 host(s) tested</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #28 Start Time:         2026-06-13 09:23:11 (GMT0)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Start Time:         2026-06-13 09:23:11 (GMT0)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #29 End Time:           2026-06-13 09:28:35 (GMT0) (324 seconds)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>End Time:           2026-06-13 09:28:35 (GMT0) (324 seconds)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #30 Start Time:         2026-06-13 09:30:38 (GMT0)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>Start Time:         2026-06-13 09:30:38 (GMT0)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#EAB308'>MEDIUM</span> #31 End Time:           2026-06-13 09:36:02 (GMT0) (324 seconds)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          <div class='desc'><strong>Description:</strong><br>End Time:           2026-06-13 09:36:02 (GMT0) (324 seconds)</div>
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #32 Dir: http://192.168.1.180/api</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #33 Dir: http://192.168.1.180/api/</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #34 Dir: http://192.168.1.180/assets</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #35 Dir: http://192.168.1.180/assets/</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #36 Dir: http://192.168.1.180/ws</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #37 Dir: http://192.168.1.180/ws/</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #38 Dir: http://192.168.1.180:8080/config</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #39 Dir: http://192.168.1.180:8080/config/</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #40 Dir: http://192.168.1.180:8080/docs</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #41 Dir: http://192.168.1.180:8080/docs/</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #42 Dir: http://192.168.1.180:8080/external</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #43 Dir: http://192.168.1.180:8080/external/</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #44 Dir: http://192.168.1.180:8080/favicon.ico</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #45 Dir: http://192.168.1.180:8080/php.ini</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #46 Dir: http://192.168.1.180:8080/robots.txt</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #47 Dir: http://192.168.1.180:8080/server-status</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #48 API: /api @ http://192.168.1.180:80 (HTTP 301)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #49 API: /swagger @ http://192.168.1.180:80 (HTTP 200)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #50 API: /openapi.json @ http://192.168.1.180:80 (HTTP 200)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #51 API: /graphql @ http://192.168.1.180:80 (HTTP 200)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+        <div class='finding'>
+          <h4><span class='sev-badge' style='background:#94A3B8'>INFO</span> #52 API: /api/health @ http://192.168.1.180:80 (HTTP 200)</h4>
+          <div class='desc'><strong>Target:</strong> http://192.168.1.180:8080</div>
+          
+          
+        </div>
+
+<h2 class='section'>Sessions & Access</h2><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[ssh] root@192.168.1.180</div><div class='session-line'>[http] www-data@192.168.1.180</div><div class='session-line'>[ssh] root@?</div><div class='session-line'>[ssh] root@?</div><div class='session-line'>[php_webshell] ?@? (http://192.168.1.180:8080/hackable/uploads/shell_ae6920.php)</div>
+
+<h2 class="section">5. Attack Chain</h2>
+<table><tr><th>Phase</th><th>Action</th><th>Target</th><th>Result</th><th>Time</th></tr>
+</table>
+
+<h2 class="section">6. Appendix</h2>
+<table><tr><th>Field</th><th>Value</th></tr>
+<tr><td>Report ID</td><td>ada7dd91-be4</td></tr>
+<tr><td>Target</td><td>http://192.168.1.180:8080</td></tr>
+<tr><td>Scan Type</td><td>full</td></tr>
+<tr><td>Status</td><td>COMPLETED</td></tr>
+<tr><td>Generated</td><td>2026-06-13 14:12:24</td></tr>
+<tr><td>Engine</td><td>Yunjing v2.0</td></tr></table>
+</div></body></html>

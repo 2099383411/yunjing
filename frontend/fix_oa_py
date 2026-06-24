@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Fix OrchestrationPage and ApprovalWorkbenchPage - the two that failed"""
+import os
+
+pages_dir = "/root/yunjing/frontend_nextgen/src/pages"
+
+# Fix OrchestrationPage
+print("=== OrchestrationPage ===")
+path = os.path.join(pages_dir, "OrchestrationPage.tsx")
+with open(path) as f:
+    c = f.read()
+
+if "attack-chain" not in c:
+    new_api = """
+  useEffect(() => {
+    request.get("/dashboard/attack-chain").then(res => {
+      if (res?.data?.chains?.length > 0) {
+        const chains = res.data.chains;
+        const newNodes = [];
+        const newEdges = [];
+        chains.forEach((chain, ci) => {
+          const stages = chain.stages || chain.path || [];
+          stages.forEach((stage, si) => {
+            newNodes.push({
+              id: "chain-" + ci + "-" + si,
+              type: "default",
+              position: { x: 250 + si * 220, y: 100 + ci * 120 },
+              data: {
+                label: stage.name || stage.stage || stage.action || "",
+                phase: stage.phase || stage.evidence_type || "",
+                status: stage.status || "completed",
+                confidence: stage.confidence_after || stage.confidence || 0.5,
+                detail: stage.description || stage.action || "",
+              },
+            });
+            if (si > 0) {
+              newEdges.push({
+                id: "edge-" + ci + "-" + si,
+                source: "chain-" + ci + "-" + (si-1),
+                target: "chain-" + ci + "-" + si,
+                animated: true,
+              });
+            }
+          });
+        });
+        if (newNodes.length > 0) { setNodes(newNodes); setEdges(newEdges); }
+      }
+    }).catch(() => {});
+  }, []);
+"""
+    # Find the component function start
+    marker = "export default function OrchestrationPage() {"
+    idx = c.find(marker)
+    if idx >= 0:
+        # Insert right after the opening brace
+        brace_pos = c.find("{", idx)
+        c = c[:brace_pos+1] + new_api + c[brace_pos+1:]
+        with open(path, 'w') as f:
+            f.write(c)
+        print("  DONE")
+    else:
+        print("  FAIL: function not found")
+else:
+    print("  SKIP (already has API call)")
+
+# Fix ApprovalWorkbenchPage
+print("=== ApprovalWorkbenchPage ===")
+path = os.path.join(pages_dir, "ApprovalWorkbenchPage.tsx")
+with open(path) as f:
+    c = f.read()
+
+if "negative/list" not in c:
+    new_api = """
+  useEffect(() => {
+    request.get("/negative/list").then(res => {
+      if (res?.data) {
+        const items = Array.isArray(res.data) ? res.data : (res.data.results || res.data.items || []);
+        if (items.length > 0) {
+          setData(items.map((item) => ({
+            id: item.id,
+            task: item.task_id || item.task || "",
+            target: item.target || "",
+            vulnerability: item.name || item.title || item.vulnerability || "",
+            severity: (item.severity || "medium").toLowerCase(),
+            cvss: item.cvss || 0,
+            status: item.confirmed === true ? "approved" : item.confirmed === false ? "rejected" : "pending",
+            submitter: item.created_by || item.submitter || "system",
+            createdAt: item.created_at ? new Date(item.created_at).toLocaleString() : "",
+          })));
+        }
+      }
+    }).catch(() => {});
+    request.get("/negative/stats").then(res => {
+      if (res?.data) {
+        setStats({
+          total: res.data.total || res.data.total_count || 0,
+          pending: res.data.pending || 0,
+          approved: res.data.approved || res.data.confirmed || 0,
+          rejected: res.data.rejected || res.data.dismissed || 0,
+        });
+      }
+    }).catch(() => {});
+  }, []);
+"""
+    # Replace the old state declaration and add useEffect
+    old_state = "const [data] = useState<AuditRecord[]>(MOCK_DATA);"
+    new_state = "const [data, setData] = useState<AuditRecord[]>([]);"
+    c = c.replace(old_state, new_state)
+    
+    # Add stats state
+    c = c.replace(
+        "const [loading] = useState(false);",
+        """const [loading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });"""
+    )
+    
+    # Add useEffect if not present
+    if "useEffect" not in c:
+        c = c.replace(
+            'import { useState } from "react";',
+            'import { useState, useEffect } from "react";'
+        )
+    
+    # Insert the useEffect block after the component opening
+    marker = "export default function ApprovalWorkbenchPage() {"
+    idx = c.find(marker)
+    if idx >= 0:
+        brace_pos = c.find("{", idx)
+        c = c[:brace_pos+1] + new_api + c[brace_pos+1:]
+        with open(path, 'w') as f:
+            f.write(c)
+        print("  DONE")
+    else:
+        print("  FAIL: function not found")
+else:
+    print("  SKIP (already has API call)")
+
+print("\nAll done")

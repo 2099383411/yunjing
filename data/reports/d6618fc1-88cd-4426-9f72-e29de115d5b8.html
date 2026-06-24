@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>YUNJING Security Scan Report</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0e14;color:#e2e8f0;margin:0;padding:20px}
+.container{max-width:960px;margin:0 auto}
+h1{color:#3b82f6;border-bottom:2px solid #3b82f6;padding-bottom:10px}
+h2{color:#60a5fa;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{padding:8px 12px;text-align:left;border:1px solid #334155}
+th{background:#1e3a5f;color:#fff}
+td{background:#1a1f2e}
+tr:hover td{background:#1e293b}
+.kv{display:flex;flex-wrap:wrap;gap:8px}
+.kv-item{background:#1e293b;padding:6px 12px;border-radius:6px;flex:1;min-width:140px}
+.kv-label{color:#94a3b8;font-size:12px}
+.kv-value{color:#e2e8f0;font-size:14px;font-weight:600}
+.sev-critical{color:#ff3355;font-weight:700}
+.sev-high{color:#f59e0b;font-weight:600}
+.sev-medium{color:#3b82f6}
+.sev-low{color:#22c55e}
+.severity-bar{height:12px;border-radius:6px;overflow:hidden;display:flex;margin:12px 0}
+.seg{height:100%}
+.vuln-detail{background:#1e293b;border-radius:8px;padding:16px;margin:12px 0}
+.vuln-title{font-size:16px;font-weight:600;margin-bottom:8px}
+.meta{color:#94a3b8;font-size:13px;margin-bottom:8px}
+pre{background:#0f172a;padding:12px;border-radius:6px;overflow-x:auto;font-size:12px;color:#a5b4fc}
+.footer{text-align:center;color:#475569;margin-top:40px;font-size:12px}
+</style></head><body>
+<div class="container">
+<h1>YUNJING Security Scan Report</h1>
+<p style="color:#94a3b8">Target: <strong>http://dvwa:80</strong> | Type: full | Status: <strong>COMPLETED</strong></p>
+<p style="color:#94a3b8">Date: 2026-05-30 05:43:41</p>
+
+<h2>Scan Summary</h2>
+<div class="kv">
+  <div class="kv-item"><div class="kv-label">Task ID</div><div class="kv-value">e581cbb3-c2e0-4c...</div></div>
+  <div class="kv-item"><div class="kv-label">Vulnerabilities</div><div class="kv-value">2</div></div>
+  <div class="kv-item"><div class="kv-label">Ports Found</div><div class="kv-value">0</div></div>
+  <div class="kv-item"><div class="kv-label">Duration</div><div class="kv-value">-s</div></div>
+</div>
+
+<h2>Finding Summary (2 total)</h2>
+<div class="severity-bar">
+<div class="seg" style="width:50.0%;background:#ff3355" title="critical: 1"></div><div class="seg" style="width:50.0%;background:#3b82f6" title="medium: 1"></div>
+</div>
+<table><tr><th>Severity</th><th>Count</th></tr>
+<tr><td class="sev-critical">critical</td><td>1</td></tr><tr><td class="sev-medium">medium</td><td>1</td></tr>
+</table>
+
+<h2>Penetration Test Execution Log</h2>
+
+<div style="background:#1e293b;border-radius:8px;padding:12px;margin:12px 0">
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>asset_discovery</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">资产发现完成：使用Nmap主机发现探测目标存活状态，确认目标在线。</div>
+  
+  
+  
+  
+</div>
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>osint</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">情报收集完成：发现 0 个子域名、0 项Web技术栈。使用subfinder/whatweb/httpx/dig收集目标信息。</div>
+  
+  
+  <div style="margin-top:4px"><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 subfinder</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 whatweb</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 httpx</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 dig</span></div>
+  
+  
+  
+</div>
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>port_scan</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">端口扫描完成：全端口（1-65535）扫描，发现 0 个开放端口。高危端口（SSH/RDP/SMB等）已标记关注。</div>
+  
+  
+  <div style="margin-top:4px"><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 nmap -p 1-65535 -sS -T4</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 masscan</span></div>
+  
+  
+  
+</div>
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>service_detect</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">服务识别完成：识别 0 个服务指纹，包括SSH/HTTP/SMB/RDP等。使用Nmap版本探测脚本。</div>
+  
+  
+  <div style="margin-top:4px"><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 nmap -sV -sC --version-intensity 5</span></div>
+  
+  
+  
+</div>
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>vuln_scan</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">漏洞扫描完成：使用Nuclei（13000+模板）和Nikto Web扫描器检测，发现 2 个漏洞。高风险漏洞已自动进入利用验证阶段。</div>
+  
+  
+  <div style="margin-top:4px"><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 nuclei</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 nikto</span></div>
+  
+  
+  
+</div>
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>exploit</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">漏洞利用阶段完成：找到 0 个已知可利用EXP，实际尝试 0 个，利用失败。系统未被攻破。</div>
+  
+  
+  <div style="margin-top:4px"><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 searchsploit</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 hydra</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 sqlmap</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 msfconsole</span></div>
+  
+  
+  
+  <div style="margin-top:4px;font-weight:600;color:#ef4444">Exploit FAILED</div>
+  
+</div>
+
+
+
+<div style="padding:8px 0;border-bottom:1px solid #334155">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#e2e8f0;font-size:14px">✅ <strong>post_exploit</strong></span>
+    <span style="color:#22c55e;font-size:12px">done</span>
+  </div>
+  
+  <div style="color:#94a3b8;font-size:12px;margin-top:4px">后渗透检查完成：发现 0 个横向移动目标，执行 1 项凭据检查。使用BloodHound/SMBExec/WMI等进行域内横向移动测试。</div>
+  
+  
+  <div style="margin-top:4px"><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 bloodhound-python</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 crackmapexec</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 smbexec</span><span style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:2px 6px;color:#64b5f6;font-size:11px;margin-right:4px">🔧 wmiexec</span></div>
+  
+  
+  
+</div>
+
+</div>
+
+
+<h2>Vulnerability Details (2 found)</h2>
+
+<div style="overflow-x:auto">
+<table><tr><th>#</th><th>Sev</th><th>Title</th><th>CVE</th><th>CVSS</th><th>Conf</th><th>Phase</th></tr>
+<tr>
+<td>1</td>
+<td class="sev-medium">medium</td>
+<td>Sensitive Configuration Files Listing - </td>
+<td>-</td>
+<td>5.3</td>
+<td>0.8</td>
+<td>nuclei</td>
+</tr><tr>
+<td>2</td>
+<td class="sev-critical">critical</td>
+<td>DVWA Default Login</td>
+<td>-</td>
+<td>-</td>
+<td>0.8</td>
+<td>nuclei</td>
+</tr></table>
+</div>
+
+<div class="vuln-detail">
+  <div class="vuln-title" style="color:#e2e8f0">
+    1. Sensitive Configuration Files Listing - Detect
+  </div>
+  <div class="meta">
+    Severity: <span class="sev-medium">medium</span> |
+    CVE: N/A |
+    CVSS: 5.3 |
+    Confidence: 0.8/1.0
+  </div>
+  <div class="meta">Target: http://dvwa:80 | Discovered by: nuclei</div>
+  
+  <p style="color:#94a3b8;font-size:13px;margin:8px 0"><strong>Description</strong></p>
+  <pre style="white-space:pre-wrap">Listing of sensitive configuration files containing items such as usernames, passwords, and IP addresses was detected.</pre>
+  
+  
+  <p style="color:#94a3b8;font-size:13px;margin:8px 0"><strong>Evidence / Proof</strong></p>
+  <pre style="white-space:pre-wrap;background:#0f172a;border-left:3px solid #3b82f6">http://dvwa:80/config/</pre>
+  
+  
+  
+  <p style="color:#22c55e;font-size:13px;margin:8px 0"><strong>✅ Remediation</strong></p>
+  <pre style="white-space:pre-wrap;background:#0f172a;border-left:3px solid #22c55e">Listing of sensitive configuration files containing items such as usernames, passwords, and IP addresses was detected.</pre>
+  
+</div>
+
+<div class="vuln-detail">
+  <div class="vuln-title" style="color:#ff3355">
+    2. DVWA Default Login
+  </div>
+  <div class="meta">
+    Severity: <span class="sev-critical">critical</span> |
+    CVE: N/A |
+    CVSS: N/A |
+    Confidence: 0.8/1.0
+  </div>
+  <div class="meta">Target: http://dvwa:80 | Discovered by: nuclei</div>
+  
+  <p style="color:#94a3b8;font-size:13px;margin:8px 0"><strong>Description</strong></p>
+  <pre style="white-space:pre-wrap">Damn Vulnerable Web App (DVWA) is a test application for security professionals. The hard coded credentials are part of a security testing scenario.</pre>
+  
+  
+  <p style="color:#94a3b8;font-size:13px;margin:8px 0"><strong>Evidence / Proof</strong></p>
+  <pre style="white-space:pre-wrap;background:#0f172a;border-left:3px solid #3b82f6">http://dvwa:80/index.php</pre>
+  
+  
+  
+  <p style="color:#22c55e;font-size:13px;margin:8px 0"><strong>✅ Remediation</strong></p>
+  <pre style="white-space:pre-wrap;background:#0f172a;border-left:3px solid #22c55e">Damn Vulnerable Web App (DVWA) is a test application for security professionals. The hard coded credentials are part of a security testing scenario.</pre>
+  
+</div>
+
+
+
+<div class="footer">Generated by Yunjing Security Scanner</div>
+</div></body></html>

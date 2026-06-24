@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Add API call to OrchestrationPage - fixing the last page"""
+path = "/root/yunjing/frontend_nextgen/src/pages/OrchestrationPage.tsx"
+with open(path) as f:
+    c = f.read()
+
+if "request.get" in c:
+    print("Already has API calls, skipping")
+else:
+    # Add useEffect import if needed
+    if "useEffect" not in c:
+        # Find the existing import from react and add useEffect
+        c = c.replace(
+            'import { useState, useCallback, useRef, useMemo } from "react";',
+            'import { useState, useEffect, useCallback, useRef, useMemo } from "react";'
+        )
+    
+    # Add request import
+    c = c.replace(
+        'import request from "../api/request";\n',
+        ''
+    )
+    c = c.replace(
+        'import {',
+        'import request from "../api/request";\nimport {'
+    )
+    
+    # Inject after the state declarations in OrchestrationCanvas
+    old = "const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);"
+    new_code = """const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  useEffect(() => {
+    request.get("/dashboard/attack-chain").then(res => {
+      if (res?.data?.chains?.length > 0) {
+        const chains = res.data.chains;
+        const newNodes = [];
+        const newEdges = [];
+        chains.forEach((chain, ci) => {
+          const stages = chain.stages || chain.path || [];
+          stages.forEach((stage, si) => {
+            newNodes.push({
+              id: "chain-" + ci + "-" + si,
+              type: "default",
+              position: { x: 250 + si * 220, y: 100 + ci * 120 },
+              data: {
+                label: stage.name || stage.stage || stage.action || "",
+                phase: stage.phase || stage.evidence_type || "",
+                status: stage.status || "completed",
+                confidence: stage.confidence_after || stage.confidence || 0.5,
+                detail: stage.description || stage.action || "",
+              },
+            });
+            if (si > 0) {
+              newEdges.push({
+                id: "edge-" + ci + "-" + si,
+                source: "chain-" + ci + "-" + (si-1),
+                target: "chain-" + ci + "-" + si,
+                animated: true,
+              });
+            }
+          });
+        });
+        if (newNodes.length > 0) { setNodes(newNodes); setEdges(newEdges); }
+      }
+    }).catch(() => {});
+  }, []);
+"""
+    if old in c:
+        c = c.replace(old, new_code)
+        with open(path, 'w') as f:
+            f.write(c)
+        print("DONE")
+    else:
+        print("FAIL: marker not found")
+        # Check what the actual line is
+        import re
+        match = re.search(r'useState<any>\(null\)', c)
+        if match:
+            print(f"Found at position {match.start()}")

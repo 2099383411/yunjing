@@ -1,0 +1,18 @@
+# ─── 修改1: 替换 _strip_url → _parse_target ──────────────
+def _parse_target(target):
+    """解析目标为 (host, port_or_None, original_url)"""
+    if not target:
+        return target, None, target
+    host = target
+    port = None
+    if "://" in target:
+        from urllib.parse import urlparse
+        parsed = urlparse(target)
+        host = parsed.hostname or target
+        port = parsed.port
+    elif ":" in target and "/" not in target:
+        parts = target.split(":")
+        if len(parts) == 2 and parts[1].isdigit():
+            host = parts[0]
+            port = int(parts[1])
+    return host, port, target
