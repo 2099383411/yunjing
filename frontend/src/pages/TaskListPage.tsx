@@ -263,7 +263,7 @@ export default function TaskListPage() {
  const renderDrawer = () => {
  if (!selectedTask) return null;
  const t = selectedTask;
- const r = t.result || {};
+ const r = (typeof t.result === "string" ? (() => { try { return JSON.parse(t.result); } catch(e) { return {}; } })() : t.result) || {};
  const phases = r.phases_log || [];
 
  return (

@@ -283,7 +283,18 @@ export default function ReportPage() {
 
  // 阶段日志
  const phasesLog = useMemo(() => {
- return taskResult?.result?.phases_log || [];
+ // 从 actions_taken + services_detailed 重构阶段数据
+    const actions = taskResult?.result?.actions_taken || [];
+    const svcs = taskResult?.result?.services_detailed || [];
+    const ports = taskResult?.result?.ports || [];
+    if (actions.length > 0) {
+      return actions.map((name, i) => ({
+        name,
+        status: "done",
+        data: {"ports": ports, "services": svcs.filter(s => s.port === ports[i % ports.length] || true)}
+      }));
+    }
+    return [];
 }, [taskResult]);
 
  // 阶段执行列表

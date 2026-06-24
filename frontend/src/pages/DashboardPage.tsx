@@ -235,7 +235,6 @@ export default function DashboardPage() {
       const [engRes, dashRes, tasksRes, kbRes, learnRes, chainRes, topoRes] = await Promise.all([
         request.get("/engine/state?target=").catch(() => null),
         request.get("/dashboard/stats").catch(() => null),
-        request.get("/tasks?page=1&page_size=6").catch(() => null),
         request.get("/tasks?offset=0&limit=6").catch(() => null),
         request.get("/engine/kb-stats").catch(() => null),
         request.get("/engine/learning-stats").catch(() => null),

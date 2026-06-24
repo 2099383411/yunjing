@@ -478,7 +478,8 @@ def execute_scan(self, task_id: str, target: str, scan_type: str = "full") -> di
         if scan_type == "round":
             try:
                 from tasks.round_manager import execute_round_1
-                _publish(task_id, "round_start", {"round": 1, "target": target, "scan_type": "round"})
+                _publish(task_id, "round_start", {"round": 1,
+        "phases_log": [], "target": target, "scan_type": "round"})
                 report = execute_round_1(
                     task_id=task_id, target=target, host=host,
                     start_time=start_time, db=db, _engine=_engine,
@@ -486,7 +487,8 @@ def execute_scan(self, task_id: str, target: str, scan_type: str = "full") -> di
                     execute_action_func=_execute_decision_action,
                     _update_state_func=_update_scan_state,
                 )
-                _publish(task_id, "round_complete", {"round": 1, "report": {
+                _publish(task_id, "round_complete", {"round": 1,
+        "phases_log": [], "report": {
                     "findings": report["findings_count"],
                     "sessions": len(report["sessions"]),
                     "new_hosts": len(report.get("new_hosts", [])),

@@ -157,7 +157,6 @@ const [loading, setLoading] = useState(true);
  // 1. Try perception API for detailed asset info
  let perceptionTarget = "192.168.1.180";
  try {
-   const latestTask = await request.get("/tasks?page=1&page_size=1").catch(() => null);
    const latestTask = await request.get("/tasks?offset=0&limit=1").catch(() => null);
    if (latestTask?.data) {
      const tasks = Array.isArray(latestTask.data) ? latestTask.data : (latestTask.data.items || []);
@@ -207,7 +206,6 @@ const [loading, setLoading] = useState(true);
  // 2. Always also fetch from tasks for real targets
  if (mapped.length === 0) {
  try {
- const taskRes = await request.get("/tasks", {params: {page: 1, page_size: 10}});
  const taskRes = await request.get("/tasks", {params: {offset: 0, limit: 10}});
  const tasks = taskRes?.data?.items || taskRes?.data || [];
  if (Array.isArray(tasks)) {

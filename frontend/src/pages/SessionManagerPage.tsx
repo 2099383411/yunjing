@@ -25,12 +25,10 @@ const SessionManagerPage: React.FC = () => {
     (async () => {
       try {
         // Try to fetch sessions from the backend
-        const res = await request.get("/engine/sessions/list", { params: { page: 1, page_size: 100 } }).catch(() => null);
         if (res?.data?.sessions) {
           setSessions(Array.isArray(res.data.sessions) ? res.data.sessions : []);
         } else {
           // Fall back to extracting from latest task
-          const taskRes = await request.get("/tasks", { params: { page: 1, page_size: 5 } });
           const taskRes = await request.get("/tasks", { params: { offset: 0, limit: 5 } });
           const tasks = taskRes?.data?.items || taskRes?.data || [];
           const tasksArr = Array.isArray(tasks) ? tasks : [];
