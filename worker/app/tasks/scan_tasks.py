@@ -46,11 +46,13 @@ SANDBOX_ENV = "/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/
 
 
 def _strip_url(url):
-    """Strip http:// or https:// prefix. Handle CIDR without scheme."""
+    """Strip http:// or https:// prefix. Handle CIDR and host:port without scheme."""
     from urllib.parse import urlparse
-    # CIDR (192.168.1.0/24) has no scheme; urlparse gives empty hostname
     if "/" in url and not url.startswith("http"):
         return url.split("/")[0]
+    # host:port without scheme - urlparse gives None hostname
+    if not url.startswith("http") and ":" in url:
+        return url.rsplit(":", 1)[0]
     parsed = urlparse(url)
     return parsed.hostname or url
 
@@ -479,6 +481,7 @@ def execute_scan(self, task_id: str, target: str, scan_type: str = "full") -> di
             try:
                 from tasks.round_manager import execute_round_1
                 _publish(task_id, "round_start", {"round": 1,
+        "phases_log": [],
         "phases_log": [], "target": target, "scan_type": "round"})
                 report = execute_round_1(
                     task_id=task_id, target=target, host=host,
@@ -488,6 +491,7 @@ def execute_scan(self, task_id: str, target: str, scan_type: str = "full") -> di
                     _update_state_func=_update_scan_state,
                 )
                 _publish(task_id, "round_complete", {"round": 1,
+        "phases_log": [],
         "phases_log": [], "report": {
                     "findings": report["findings_count"],
                     "sessions": len(report["sessions"]),
@@ -717,6 +721,7 @@ def execute_scan(self, task_id: str, target: str, scan_type: str = "full") -> di
             })
 
             result = _execute_decision_action(task_id, target, action_name, action_params, state)
+            state.setdefault("phases_log", []).append({"name": action_name, "status": "done", "data": {"findings_count": result.get("findings_count", 0)}})
 
             logger.info("[决策循环 Step %d/%d] ✅ 执行完成: action=%s, findings=%d, ports=%s, elapsed=%.0fs",
                         step, MAX_STEPS, action_name,
