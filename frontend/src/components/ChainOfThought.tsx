@@ -16,11 +16,8 @@ import BugOutlined from "@ant-design/icons/es/icons/BugOutlined";
 import SearchOutlined from "@ant-design/icons/es/icons/SearchOutlined";
 import ExperimentOutlined from "@ant-design/icons/es/icons/ExperimentOutlined";
 import FileSearchOutlined from "@ant-design/icons/es/icons/FileSearchOutlined";
-<<<<<<< HEAD
 import KeyOutlined from "@ant-design/icons/es/icons/KeyOutlined";;
-=======
 import KeyOutlined from "@ant-design/icons/es/icons/KeyOutlined"
->>>>>>> server/master
 
 const { Text } = Typography;
 

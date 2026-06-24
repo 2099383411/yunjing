@@ -1,10 +1,7 @@
 import { Modal, Checkbox, Space, Typography } from "antd";
 import { useState } from "react";
-<<<<<<< HEAD
 import SafetyOutlined from "@ant-design/icons/es/icons/SafetyOutlined";;
-=======
 import SafetyOutlined from "@ant-design/icons/es/icons/SafetyOutlined"
->>>>>>> server/master
 
 const { Text } = Typography;
 

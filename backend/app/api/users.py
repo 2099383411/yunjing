@@ -134,11 +134,7 @@ async def set_user_roles(user_id: str, data: dict):
 
 @router.put("/{user_id}/reset-password")
 async def reset_password(user_id: str, data: dict):
-<<<<<<< HEAD
-    new_pw = data.get("password", "yunjing123")
-=======
     new_pw = data.get("password", "")
->>>>>>> server/master
     async with AsyncSessionLocal() as sess:
         user = await sess.get(User, user_id)
         if not user:

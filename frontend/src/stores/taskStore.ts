@@ -1,9 +1,6 @@
 import { create } from "zustand";
-<<<<<<< HEAD
 import client from "../api/client";
-=======
 import client from "../api/request";
->>>>>>> server/master
 
 interface TaskState {
   tasks: any[];

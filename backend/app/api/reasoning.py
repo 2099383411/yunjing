@@ -341,7 +341,3 @@ async def decide_next_step(data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"决策失败: {str(e)}")
 
-<<<<<<< HEAD
-12061
-=======
->>>>>>> server/master

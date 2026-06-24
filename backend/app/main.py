@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 import os
->>>>>>> server/master
 """云镜·安全检测助手 主入口"""
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -50,11 +47,7 @@ async def seed_rbac():
         if not admin:
             admin = User(
                 id=str(uuid.uuid4()), username="admin",
-<<<<<<< HEAD
-                password_hash=bcrypt.hash("yunjing123"),
-=======
                 password_hash=bcrypt.hash(os.getenv("DEFAULT_ADMIN_PASSWORD", "yunjing123_change_me")),
->>>>>>> server/master
                 display_name="超级管理员",
             )
             sess.add(admin)
@@ -147,10 +140,7 @@ app.include_router(report.router, prefix="/api/report", tags=["报告层"])
 
 # 引擎数据展示
 app.include_router(engine_api.router, prefix="/api/engine", tags=["引擎"])
-<<<<<<< HEAD
 app.include_router(reasoning.router, prefix="/api/reasoning", tags=["推理链"])
-=======
->>>>>>> server/master
 app.include_router(phishing.router, prefix="/api", tags=["社工钓鱼"])
 
 

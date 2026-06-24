@@ -5,11 +5,8 @@ import ThunderboltOutlined from "@ant-design/icons/es/icons/ThunderboltOutlined"
 import CheckCircleOutlined from "@ant-design/icons/es/icons/CheckCircleOutlined";
 import CloseCircleOutlined from "@ant-design/icons/es/icons/CloseCircleOutlined";
 import ClockCircleOutlined from "@ant-design/icons/es/icons/ClockCircleOutlined";
-<<<<<<< HEAD
 import LinkOutlined from "@ant-design/icons/es/icons/LinkOutlined";;
-=======
 import LinkOutlined from "@ant-design/icons/es/icons/LinkOutlined"
->>>>>>> server/master
 
 const { Text } = Typography;
 

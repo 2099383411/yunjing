@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 import os
->>>>>>> server/master
 """GoPhish 社工钓鱼平台代理 API"""
 import httpx
 import logging

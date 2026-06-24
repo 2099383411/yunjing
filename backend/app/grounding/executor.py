@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-"""CVE-to-Exploit 执行引擎
-将推演层的结果 → 在沙箱中找到并执行利用 → 捕获证据"""
-import json, re, asyncio, subprocess
-=======
 import asyncio
 """CVE-to-Exploit 执行引擎
 将推演层的结果 → 在沙箱中找到并执行利用 → 捕获证据"""
 import json, re, asyncio, subprocess, shlex
->>>>>>> server/master
 from typing import Optional
 from datetime import datetime
 
@@ -97,14 +91,9 @@ def _searchsploit_run(cve_id: str, target: str) -> dict:
             )
             entry = r.scalar_one_or_none()
             if entry and entry.poc_command:
-<<<<<<< HEAD
-                poc_result = _sandbox_exec(
-                    f"cd {OUTPUT_DIR} && {entry.poc_command}",
-=======
                 _safe_out_dir = shlex.quote(OUTPUT_DIR)
                 poc_result = _sandbox_exec(
                     f"cd {_safe_out_dir} && {entry.poc_command}",
->>>>>>> server/master
                     timeout=60
                 )
                 return poc_result.get("stdout", "")[:2000]
@@ -170,11 +159,7 @@ def _metasploit_run(cve_id: str, target: str) -> dict:
 
 
 # ── 主入口 ───────────────────────────────────────────────
-<<<<<<< HEAD
-def exploit_cve(cve_id: str, target: str, poc_command: str = "") -> dict:
-=======
 async def exploit_cve(cve_id: str, target: str, poc_command: str = "") -> dict:
->>>>>>> server/master
     """主入口：对指定 CVE + 目标执行利用验证"""
     _ensure_output_dir()
     
@@ -206,12 +191,8 @@ async def exploit_cve(cve_id: str, target: str, poc_command: str = "") -> dict:
     
     # 如果有 PoC 命令直接执行
     if poc_command:
-<<<<<<< HEAD
-        poc = _sandbox_exec(f"cd {OUTPUT_DIR} && {poc_command}", timeout=60)
-=======
         _safe_out = shlex.quote(OUTPUT_DIR)
         poc = _sandbox_exec(f"cd {_safe_out} && {poc_command}", timeout=60)
->>>>>>> server/master
         result["evidence"].append({
             "tool": "poc_command",
             "cve_id": cve_id,

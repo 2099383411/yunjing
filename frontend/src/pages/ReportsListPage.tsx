@@ -26,11 +26,8 @@ import FilePdfOutlined from "@ant-design/icons/es/icons/FilePdfOutlined";
 import FileWordOutlined from "@ant-design/icons/es/icons/FileWordOutlined";
 import FileExcelOutlined from "@ant-design/icons/es/icons/FileExcelOutlined";
 import WarningOutlined from "@ant-design/icons/es/icons/WarningOutlined";
-<<<<<<< HEAD
 import InfoCircleOutlined from "@ant-design/icons/es/icons/InfoCircleOutlined";;
-=======
 import InfoCircleOutlined from "@ant-design/icons/es/icons/InfoCircleOutlined"
->>>>>>> server/master
 
 const {Title, Text} = Typography;
 

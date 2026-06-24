@@ -158,11 +158,7 @@ async def scan_callback(data: dict):
 
         # 1. 记录到 learning_data
         le = LearningEngine(storage_path=_LEARNING_PATH)
-<<<<<<< HEAD
-        vuln_count = le.record_result(
-=======
         vuln_count = le.record_scan_callback(
->>>>>>> server/master
             task_id=task_id, target=target, scan_type=scan_type,
             findings=findings, status=status,
         )

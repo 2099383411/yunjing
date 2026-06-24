@@ -27,11 +27,8 @@ const AttackSurfacePage: React.FC = () => {
     (async () => {
       try {
         // Get latest scan tasks
-<<<<<<< HEAD
         const taskRes = await request.get("/tasks", { params: { page: 1, page_size: 20 } });
-=======
         const taskRes = await request.get("/tasks", { params: { offset: 0, limit: 20 } });
->>>>>>> server/master
         const items = taskRes?.data?.items || taskRes?.data || [];
         setTasks(Array.isArray(items) ? items : []);
 

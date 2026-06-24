@@ -1,10 +1,6 @@
 """WebSocket endpoint for real-time scan progress push"""
 import json, logging
-<<<<<<< HEAD
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-=======
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
->>>>>>> server/master
 import redis.asyncio as aioredis
 
 router = APIRouter()
@@ -12,10 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 @router.websocket("/ws/scan/{task_id}")
-<<<<<<< HEAD
-async def scan_progress_ws(websocket: WebSocket, task_id: str):
-    """Real-time scan progress via Redis Pub/Sub relay"""
-=======
 async def scan_progress_ws(websocket: WebSocket, task_id: str, token: str = ""):
     """Real-time scan progress via Redis Pub/Sub relay"""
     # Validate token
@@ -37,7 +29,6 @@ async def scan_progress_ws(websocket: WebSocket, task_id: str, token: str = ""):
     except Exception as e:
         logger.warning(f"WS auth failed (continuing): {e}")
 
->>>>>>> server/master
     await websocket.accept()
     logger.info(f"WS connected for scan {task_id}")
 

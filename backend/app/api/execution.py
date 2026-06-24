@@ -1,16 +1,10 @@
 """执行层 API — CVE-to-Exploit 自动利用验证"""
 import json
-<<<<<<< HEAD
-from fastapi import APIRouter, Query, HTTPException, Body
-from pydantic import BaseModel
-from typing import Optional, Any
-=======
 from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from pydantic import BaseModel
 from typing import Optional, Any
 from app.api.deps import get_current_user
 from app.models.user import User
->>>>>>> server/master
 from app.grounding.executor import exploit_cve, batch_exploit
 
 router = APIRouter()
@@ -27,11 +21,7 @@ class BatchExploitRequest(BaseModel):
 
 
 @router.post("/exploit")
-<<<<<<< HEAD
-async def single_exploit(req: ExploitRequest):
-=======
 async def single_exploit(req: ExploitRequest, user: User = Depends(get_current_user)):
->>>>>>> server/master
     """对单个 CVE + 目标执行利用验证"""
     result = exploit_cve(req.cve_id, req.target, req.poc_command)
     return {
@@ -52,11 +42,7 @@ async def single_exploit(req: ExploitRequest, user: User = Depends(get_current_u
 
 
 @router.post("/exploit/batch")
-<<<<<<< HEAD
-async def batch_exploit_endpoint(req: BatchExploitRequest):
-=======
 async def batch_exploit_endpoint(req: BatchExploitRequest, user: User = Depends(get_current_user)):
->>>>>>> server/master
     """批量执行 CVE 利用验证"""
     cve_targets = [
         {"cve_id": t.cve_id, "target": t.target, "poc_command": t.poc_command}
@@ -80,10 +66,7 @@ async def batch_exploit_endpoint(req: BatchExploitRequest, user: User = Depends(
 
 @router.post("/exploit/from-deduction")
 async def exploit_from_deduction(
-<<<<<<< HEAD
-=======
     user: User = Depends(get_current_user),
->>>>>>> server/master
     target: str = Query(..., description="目标"),
     risk_threshold: str = Query("medium", description="最低风险级别: critical/high/medium/low"),
 ):
