@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.scan_tools import create_and_start_scan
-import os, json, asyncio
+import json
 
 router = APIRouter()
 
