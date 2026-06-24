@@ -46,3 +46,13 @@ Thumbs.db
 __pycache__/
 *.pyc
 .pytest_cache/
+# 临时测试文件
+*.new
+*.bak7
+test_*.py
+run_scan*.py
+fix_*.py
+check_*.py
+verify_*.py
+generate_*.py
+rebuild_*.py
