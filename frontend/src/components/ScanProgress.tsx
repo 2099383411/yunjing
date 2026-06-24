@@ -2,7 +2,7 @@ import { Typography } from "antd";
 import CheckCircleOutlined from "@ant-design/icons/es/icons/CheckCircleOutlined";
 import LoadingOutlined from "@ant-design/icons/es/icons/LoadingOutlined";
 import CloseCircleOutlined from "@ant-design/icons/es/icons/CloseCircleOutlined";
-import ClockCircleOutlined from "@ant-design/icons/es/icons/ClockCircleOutlined";;
+import ClockCircleOutlined from "@ant-design/icons/es/icons/ClockCircleOutlined"
 
 const { Text } = Typography;
 
