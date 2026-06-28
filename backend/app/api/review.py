@@ -81,6 +81,17 @@ async def confirm_review(data: dict, user: User = Depends(optional_user)):
             }
             le._data.setdefault("experiences", []).append(exp)
         le._save()
+
+        # ── 经验回流：成功经验写入 knowledge 集合 ──
+        try:
+            from app.engine.vector_store import RAGEngine
+            rag = RAGEngine()
+            for s_item in successes:
+                kb_text = f"[经验回流] {s_item.get('vuln','?')}: {s_item.get('detail','')[:500]} (来源: 任务{task_id})"
+                rag.index_text(kb_text, collection="knowledge", source=f"review-{task_id[:8]}")
+            logger.info(f"[经验回流] {len(successes)}条成功经验已写入knowledge集合")
+        except Exception as e:
+            logger.warning(f"[经验回流] knowledge写入失败: {e}")
         total = len(successes) + len(failures)
         msg = f"已记录{total}条经验（{len(successes)}成功+{len(failures)}失败）"
         logger.info(f"[复盘] 任务%s: %s", task_id, msg)
