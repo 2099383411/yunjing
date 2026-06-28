@@ -54,6 +54,7 @@ const menuItems = [
     children: [
       { key: "/experience", icon: <FileTextOutlined />, label: "经验知识库" },
       { key: "/sessions", icon: <SafetyOutlined />, label: "Session管理" },
+      { key: "/review", icon: <FileTextOutlined />, label: "渗透复盘" },
     ],
   },
   { key: "/phishing", icon: <ThunderboltOutlined />, label: "社工钓鱼" },
@@ -117,7 +118,7 @@ export default function Layout() {
         style={{ background: "#0F172A", borderRight: "none", position: "fixed", left: 0, top: 0, bottom: 0, zIndex: 100, overflow: "auto" }}>
         <div style={{ height: 56, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? 0 : "0 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}
           onClick={() => navigate("/")}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #2563EB, #60A5FA)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #0284c7, #38bdf8)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <SafetyOutlined style={{ fontSize: 16, color: "#fff" }} />
           </div>
           {!collapsed && <div style={{ marginLeft: 12 }}>

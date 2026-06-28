@@ -384,11 +384,14 @@ export default function ChatPage() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0", overflow: "hidden", minWidth: 0 }}>
         
         {/* 头部 */}
-        <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)" }}>
           <Space>
-            <RobotOutlined style={{ color: "#0284c7", fontSize: 14 }} />
-            <Text strong style={{ fontSize: 13 }}>智能渗透对话</Text>
-            {activeTask?.status === "RUNNING" && <Badge status="processing" />}
+            <RobotOutlined style={{ color: "#fff", fontSize: 16 }} />
+            <div>
+              <Text strong style={{ fontSize: 13, color: "#fff" }}>智能渗透对话</Text>
+              <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", display: "block", lineHeight: 1.2 }}>AI 渗透测试专家</Text>
+            </div>
+            {activeTask?.status === "RUNNING" && <Badge status="processing" color="#fff" />}
           </Space>
           <Space size={4}>
             <Dropdown menu={{ items: convs.map((c) => ({ key: c.id, label: <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 180 }}><Text ellipsis style={{ fontSize: 11, maxWidth: 140 }}>{c.title}</Text><Button type="text" size="small" icon={<DeleteOutlined style={{ fontSize: 9 }} />} onClick={(e) => deleteConv(c.id, e)} style={{ color: "#94a3b8" }} /></div>, onClick: () => switchConv(c.id) })), style: { maxHeight: 280, overflow: "auto" } }} trigger={["click"]}>
@@ -401,10 +404,36 @@ export default function ChatPage() {
         {/* 消息区 */}
         <div style={{ flex: 1, overflow: "auto", padding: "12px 16px", background: "#f8fafc" }}>
           {convLoading ? <div style={{ textAlign: "center", paddingTop: 40 }}><Spin /></div> : messages.length === 0 && !streamingContent ? (
-            <div style={{ textAlign: "center", paddingTop: 60 }}>
-              <RobotOutlined style={{ fontSize: 40, color: "#cbd5e1" }} />
-              <Title level={5} style={{ color: "#94a3b8", marginTop: 12, fontWeight: 400, fontSize: 14 }}>输入目标资产，启动智能渗透检测</Title>
-              <Text style={{ fontSize: 11, color: "#cbd5e1" }}>支持 IP / 域名 / URL</Text>
+            <div style={{ textAlign: "center", padding: "40px 20px" }}>
+              <RobotOutlined style={{ fontSize: 48, color: "#0284c7", marginBottom: 16 }} />
+              <Title level={4} style={{ color: "#1e293b", marginBottom: 8, fontWeight: 600 }}>
+                云镜 AI 渗透助手
+              </Title>
+              <Text style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 20 }}>
+                输入目标，AI 自动完成渗透测试全流程
+              </Text>
+              {/* 零基础快速入口 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 340, margin: "0 auto" }}>
+                <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 4, textAlign: "left" }}>🚀 快速开始</div>
+                <Button block size="middle" type="primary" icon={<ThunderboltOutlined />}
+                  onClick={() => { setInput("全面扫描 192.168.1.180"); setTimeout(() => handleSend(), 150); }}
+                  style={{ borderRadius: 8, height: 40, fontSize: 13 }}>
+                  全面扫描 (默认目标)
+                </Button>
+                <Button block size="middle" icon={<AimOutlined />}
+                  onClick={() => { setInput("快速检测 DVWA 靶场"); setTimeout(() => handleSend(), 150); }}
+                  style={{ borderRadius: 8, height: 40, fontSize: 13 }}>
+                  DVWA 靶场检测
+                </Button>
+                <Button block size="middle" icon={<BugOutlined />}
+                  onClick={() => { setInput("扫描 192.168.1.180 的 Web 服务"); setTimeout(() => handleSend(), 150); }}
+                  style={{ borderRadius: 8, height: 40, fontSize: 13 }}>
+                  Web 专项扫描
+                </Button>
+                <div style={{ fontSize: 10, color: "#cbd5e1", marginTop: 8, textAlign: "center" }}>
+                  不懂渗透？点上面按钮就行，AI 自动完成
+                </div>
+              </div>
             </div>
           ) : <>{messages.map((m) => renderMessage(m))}{streamingContent ? renderMessage({ id: "st", role: "assistant", content: streamingContent }, true) : null}</>}
           <div ref={messagesEndRef} />

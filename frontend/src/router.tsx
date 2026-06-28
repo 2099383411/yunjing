@@ -1,24 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Spin } from "antd";
 import { useAuthStore } from "./stores/authStore";
 import Layout from "./components/Layout";
-import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import ChatPage from "./pages/ChatPage";
-import TaskListPage from "./pages/TaskListPage";
-import ReportsListPage from "./pages/ReportsListPage";
-import ReportPage from "./pages/ReportPage";
-import ScheduleCenterPage from "./pages/ScheduleCenterPage";
-import ReasoningPage from "./pages/ReasoningPage";
-import AttackSurfacePage from "./pages/AttackSurfacePage";
-import ExperienceBrowserPage from "./pages/ExperienceBrowserPage";
-import SessionManagerPage from "./pages/SessionManagerPage";
-import PerceptionPage from "./pages/PerceptionPage";
-import PhishingPage from "./pages/PhishingPage";
-import SettingsPage from "./pages/SettingsPage";
-// Removed: AdvancedConfigPage, ToolOverviewPage, OfflineUpdatePage, EngineConfigPage,
-// SkillMarketPage, OrchestrationPage, ApprovalWorkbenchPage
+
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const TaskListPage = lazy(() => import("./pages/TaskListPage"));
+const ReportsListPage = lazy(() => import("./pages/ReportsListPage"));
+const ReviewPage = lazy(() => import("./pages/ReviewPage"));
+const ReportPage = lazy(() => import("./pages/ReportPage"));
+const ScheduleCenterPage = lazy(() => import("./pages/ScheduleCenterPage"));
+const ReasoningPage = lazy(() => import("./pages/ReasoningPage"));
+const AttackSurfacePage = lazy(() => import("./pages/AttackSurfacePage"));
+const ExperienceBrowserPage = lazy(() => import("./pages/ExperienceBrowserPage"));
+const SessionManagerPage = lazy(() => import("./pages/SessionManagerPage"));
+const PerceptionPage = lazy(() => import("./pages/PerceptionPage"));
+const PhishingPage = lazy(() => import("./pages/PhishingPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+
+function PageLoader() {
+  return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 300 }}><Spin size="large" /></div>;
+}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
@@ -55,7 +59,7 @@ export default function Router() {
   return (
     <Routes>
       <Route path="/login" element={<AuthRedirect />} />
-      <Route element={<AuthGuard><Layout /></AuthGuard>}>
+      <Route element={<AuthGuard><Suspense fallback={<PageLoader />}><Layout /></Suspense></AuthGuard>}>
         {/* Core pages */}
         <Route path="/" element={<DashboardPage />} />
         <Route path="/chat" element={<ChatPage />} />
@@ -72,6 +76,7 @@ export default function Router() {
         <Route path="/attack-surface" element={<AttackSurfacePage />} />
         <Route path="/experience" element={<ExperienceBrowserPage />} />
         <Route path="/sessions" element={<SessionManagerPage />} />
+        <Route path="/review" element={<ReviewPage />} />
 
         {/* Social engineering */}
         <Route path="/phishing" element={<PhishingPage />} />
