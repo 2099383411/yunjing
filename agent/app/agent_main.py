@@ -31,9 +31,8 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.deepseek.com/v1")
 <<<<<<< HEAD
-LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash")
-=======
 LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+=======
 >>>>>>> server/master
 
 # ── FastAPI ───────────────────────────────────────────────

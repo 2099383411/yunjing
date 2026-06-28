@@ -287,7 +287,7 @@ const AdvancedConfigPage: React.FC = () => {
  <Row gutter={[12, 12]}>
  <Col xs={24} sm={8}>
  <Radio.Button
- value="quick"
+ value="full"
  style={{
  width: "100%",
  height: 58,
@@ -305,8 +305,8 @@ const AdvancedConfigPage: React.FC = () => {
  fontSize: 18,
 }}
  />
- <div style={{marginTop: 2, fontWeight: 600}}>快速扫描</div>
- <div style={{fontSize: 11, color: "#999"}}>端口 Top100 + 基础漏洞</div>
+ <div style={{marginTop: 2, fontWeight: 600}}>全面渗透</div>
+ <div style={{fontSize: 11, color: "#999"}}>全端口 + 漏洞利用 + 后渗透</div>
  </Radio.Button>
  </Col>
  <Col xs={24} sm={8}>
@@ -329,8 +329,8 @@ const AdvancedConfigPage: React.FC = () => {
  fontSize: 18,
 }}
  />
- <div style={{marginTop: 2, fontWeight: 600}}>全面扫描</div>
- <div style={{fontSize: 11, color: "#999"}}>全端口 + 全工具链</div>
+ <div style={{marginTop: 2, fontWeight: 600}}>全面渗透</div>
+ <div style={{fontSize: 11, color: "#999"}}>全端口 + 漏洞利用 + 后渗透</div>
  </Radio.Button>
  </Col>
  <Col xs={24} sm={8}>
@@ -604,7 +604,7 @@ const AdvancedConfigPage: React.FC = () => {
  icon={<ThunderboltOutlined />}
  message={
  <span style={{color: PRIMARY_COLOR, fontWeight: 600}}>
- 当前策略：{scanType === "quick" ? "快速扫描" : scanType === "full" ? "全面扫描" : "自定义扫描"}
+ 当前策略：{scanType === "quick" ? "全面渗透" : scanType === "full" ? "全面渗透" : "自定义扫描"}
  </span>
 }
  description={

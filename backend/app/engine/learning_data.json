@@ -6,6 +6,13 @@
         "total": 1,
         "last_seen": 1782318675.7150686
       }
+    },
+    "phase_asset_discovery": {
+      "phase_asset_discovery": {
+        "success": 1,
+        "total": 1,
+        "last_seen": 1782389920.043863
+      }
     }
   },
   "pattern_weights": {},
@@ -27,22 +34,75 @@
     "transferability": {},
     "last_updated": 1782318675.715028
   },
-  "experiences": [],
+  "experiences": [
+    {
+      "exp_id": "exp-1782389920-2d3c65",
+      "created_at": 1782389920.044281,
+      "target": {
+        "host": "192.168.1.165",
+        "type": "phase_asset_discovery"
+      },
+      "hypothesis": {
+        "name": "扫描验证: phase_asset_discovery@192.168.1.165",
+        "pattern_id": "phase_asset_discovery",
+        "confidence": 0.8,
+        "target": "192.168.1.165"
+      },
+      "signals": [
+        {
+          "type": "vulnerability",
+          "name": "KDC detected on 192.168.1.165:88 — Kerberos realm present",
+          "severity": "medium"
+        }
+      ],
+      "reasoning_path": [
+        "phase_asset_discovery automated scan"
+      ],
+      "verification": {
+        "method": "phase_asset_discovery",
+        "result": "Found 1 issues"
+      },
+      "exploitation": [
+        {
+          "status": "completed",
+          "findings": 1
+        }
+      ],
+      "success": true,
+      "duration": 0.0,
+      "pattern_id": "phase_asset_discovery",
+      "target_type": "phase_asset_discovery"
+    }
+  ],
   "experience_index": {
-    "by_pattern": {},
-    "by_target_type": {},
-    "by_signal": {},
+    "by_pattern": {
+      "phase_asset_discovery": [
+        "exp-1782389920-2d3c65"
+      ]
+    },
+    "by_target_type": {
+      "phase_asset_discovery": [
+        "exp-1782389920-2d3c65"
+      ]
+    },
+    "by_signal": {
+      "vulnerability": [
+        "exp-1782389920-2d3c65"
+      ]
+    },
     "by_result": {
-      "success": [],
+      "success": [
+        "exp-1782389920-2d3c65"
+      ],
       "fail": []
     }
   },
   "meta": {
-    "total_experiments": 1,
+    "total_experiments": 2,
     "total_chains": 0,
-    "total_experiences": 0,
+    "total_experiences": 1,
     "created_at": 1782318675.715028,
-    "last_updated": 1782318675.7150722,
+    "last_updated": 1782389920.0442896,
     "version": "0.2"
   }
 }

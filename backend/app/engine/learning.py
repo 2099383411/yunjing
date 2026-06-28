@@ -321,6 +321,18 @@ class LearningEngine:
 
         return exp_id
 
+
+
+
+def _safe_ts(val):
+    if isinstance(val, (int, float)):
+        return val
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return 0.0
+
+
     def search_experiences(self, pattern_id: str = None,
                            target_type: str = None,
                            signal_type: str = None,

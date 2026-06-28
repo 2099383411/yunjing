@@ -18,7 +18,7 @@ router = APIRouter()
 
 class CreateTaskRequest(BaseModel):
     targets: list[str]
-    scan_type: str = "full"
+    scan_type: str = "round"
     tools: list[str] | None = None
     port_range: str | None = None
     rate_limit: int | None = None

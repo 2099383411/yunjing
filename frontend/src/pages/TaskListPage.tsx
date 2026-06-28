@@ -64,8 +64,8 @@ const STATUS_MAP: Record<string, {color: string; label: string}> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
- quick: "快速扫描",
- full: "全面扫描",
+ round: "全面渗透",
+ full: "全面渗透",
  port: "端口扫描",
  api: "API测试",
  password: "弱口令检测",
