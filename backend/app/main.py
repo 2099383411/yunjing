@@ -140,7 +140,6 @@ app.include_router(report.router, prefix="/api/report", tags=["报告层"])
 
 # 引擎数据展示
 app.include_router(engine_api.router, prefix="/api/engine", tags=["引擎"])
-app.include_router(reasoning.router, prefix="/api/reasoning", tags=["推理链"])
 app.include_router(phishing.router, prefix="/api", tags=["社工钓鱼"])
 app.include_router(review.router, prefix="/api", tags=["复盘"])
 app.include_router(analyst.router, prefix="/api", tags=["AI分析"])
