@@ -47,6 +47,19 @@ async def generate_review(data: dict, user: User = Depends(optional_user)):
         if error:
             draft["failures"].append({"reason": str(error)[:200]})
 
+        # Knowledge gap analysis
+        all_tools_used = set()
+        for f_item in findings:
+            if isinstance(f_item, dict):
+                tool = f_item.get("source", f_item.get("tool", ""))
+                if tool:
+                    all_tools_used.add(tool)
+        recommended_tools = {"nmap", "nuclei", "nikto", "gobuster", "sqlmap", "hydra", "jwt_tool"}
+        missing = recommended_tools - all_tools_used
+        if missing:
+            draft["knowledge_gaps"] = ["Unused tools: " + ", ".join(sorted(list(missing))[:5])]
+
+
         return {"status": "ok", "draft": draft}
 
 
