@@ -167,7 +167,20 @@ async def scan_callback(data: dict):
         # 2. 更新假设
         async with AsyncSessionLocal() as sess:
             hs = HypothesisScanner(le)
-            hypothesis = await hs.feed_back(sess, target, findings)
+            # 从学习引擎获取当前活跃假设
+            active = le.get_active_hypotheses()
+            if active:
+                hypothesis = None
+                for h in active:
+                    if target in (h.payload or ""):
+                        hypothesis = await hs.feed_back(h, True if status=="completed" else False, findings)
+                        break
+                if not hypothesis:
+                    logger.warning(f"[扫描回调] 无匹配假设, 跳过")
+                    hypothesis = None
+            else:
+                logger.warning(f"[扫描回调] 无活跃假设, 跳过")
+                hypothesis = None
         logger.info(f"[扫描回调] 假设更新: {hypothesis.status.value if hypothesis else '无'}")
 
         # 3. 自动同步经验到 Qdrant

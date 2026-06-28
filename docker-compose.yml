@@ -66,6 +66,8 @@ services:
       - AGENT_URL=http://agent:8001
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=false
+      - ENVIRONMENT=production
       - BGE_SERVICE_URL=http://yunjing-bge:8000
       - QDRANT_URL=http://yunjing-qdrant:6333
     depends_on:
