@@ -160,6 +160,27 @@ class LearningEngine:
         """获取经验总数（兼容旧版调用）"""
         return len(self._data.get("experiences", self._data.get("experiments", [])))
 
+
+    def amplify_weights(self):
+        """经验闭环：成功的经验自动提升权重"""
+        data = self._load_or_init()
+        stats = data.get("pattern_stats", {})
+        updated = 0
+        for pid, targets in stats.items():
+            for ttype, s in targets.items():
+                if s["total"] > 0:
+                    success_rate = s["success"] / s["total"]
+                    if success_rate >= 0.8 and s["total"] >= 2:
+                        # 高成功率模式，提升权重
+                        old_w = data.get("weights", {}).get(pid, {}).get(ttype, 1.0)
+                        new_w = min(old_w + 0.1, 3.0)
+                        data.setdefault("weights", {}).setdefault(pid, {})[ttype] = new_w
+                        updated += 1
+        if updated:
+            self._data = data
+            self._save()
+            logger.info(f"[经验闭环] {updated} 个模式权重已提升")
+
     def _save(self):
         """持久化"""
         self._data["meta"]["last_updated"] = time.time()

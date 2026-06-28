@@ -181,7 +181,9 @@ async def scan_callback(data: dict):
             else:
                 logger.warning(f"[扫描回调] 无活跃假设, 跳过")
                 hypothesis = None
+        le.amplify_weights()
         logger.info(f"[扫描回调] 假设更新: {hypothesis.status.value if hypothesis else '无'}")
+        le.amplify_weights()  # 经验闭环：成功经验自动提升权重
 
         # 3. 自动同步经验到 Qdrant
         try:

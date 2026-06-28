@@ -1,4 +1,5 @@
-"""对话 API：持久化会话 + LLM Function Calling"""
+"""对话 API
+import logging：持久化会话 + LLM Function Calling"""
 import json, uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
@@ -204,8 +205,6 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                 messages.append({"role": "system", "content": rag_context})
 
         # 历史消息
-
-        # 历史消息
         for m in history:
             msg = {"role": m.role, "content": m.content}
             if m.tool_calls:
@@ -222,8 +221,8 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
             async with AsyncSessionLocal() as _save_sess:
                 _save_sess.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id, role="user", content=text))
                 await _save_sess.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to save user message: {e}")
 
         # Check API key
         key_result = await sess.execute(
@@ -329,8 +328,8 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                                     tool=tc_name, target=str(tc_args)[:200],
                                     status="running", confidence_before=0.5,
                                 )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logging.getLogger(__name__).warning(f"Capture tool result failed: {e}")
                         tc_result = await execute_tool_call({
                             "id": tc["id"],
                             "function": {"name": tc["function"]["name"], "arguments": tc["function"]["arguments"]}
@@ -351,8 +350,8 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                                     status="success" if tc_result else "failed",
                                     confidence_after=0.7 if tc_result else 0.3,
                                 )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logging.getLogger(__name__).warning(f"Capture tool result failed: {e}")
 
                     asst_dict = {
                         "role": "assistant",
@@ -525,8 +524,8 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                                                     "content": f"[扫描完成] 发现漏洞:\n{v_result}"
                                                 })
                                             break
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logging.getLogger(__name__).warning(f"Capture tool result failed: {e}")
                     # ══ 第二次 LLM 调用（带 tools）══
                     tcd2_accum = []
                     # 让 LLM 用工具查看进度、分析结果
