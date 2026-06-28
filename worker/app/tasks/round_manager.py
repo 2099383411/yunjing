@@ -46,11 +46,56 @@ def execute_round_1(task_id: str, target: str, host: str,
     }
     stage_findings = []
 
+
+    # ─── DAG 动态条件 ───
+    def _should_run_stage(stage_num, state):
+        """根据当前发现决定是否执行某个阶段"""
+        ports = state.get("ports", [])
+        services = state.get("services", {})
+        vulns = state.get("vulnerabilities", [])
+        
+        # Stage 0 (信息收集): 总是执行
+        if stage_num == 0:
+            return True
+        
+        # Stage 1 (深度扫描): 有开放端口才做
+        if stage_num == 1:
+            return len(ports) > 0
+        
+        # Stage 2 (漏洞利用): 有中高危漏洞才做
+        if stage_num == 2:
+            has_exploitable = any(
+                v.get("severity") in ("critical", "high")
+                for v in vulns if isinstance(v, dict)
+            )
+            return has_exploitable or len(ports) >= 3
+        
+        # Stage 3 (后渗透): 有成功利用或凭据才做
+        if stage_num == 3:
+            has_creds = len(state.get("credentials", [])) > 0
+            has_sessions = len(state.get("sessions", [])) > 0
+            return has_creds or has_sessions
+        
+        # Stage 4 (横向移动): 有内网发现才做
+        if stage_num == 4:
+            return len(state.get("new_hosts", [])) > 0
+        
+        return True
+
     for stage_num in sorted(STAGES.keys()):
         stage_def = STAGES[stage_num]
         stage_name = stage_def["name"]
         stage_actions = stage_def["actions"]
         logger.info("[Round 1] Stage %d/%s — %s", stage_num, list(STAGES.keys())[-1], stage_name)
+
+        # DAG: 检查是否应跳过此阶段
+        if not _should_run_stage(stage_num, state):
+            logger.info("[Round 1] Stage %d/%s — ⏭️ 跳过（条件不满足）", stage_num, stage_name)
+            state["stage_results"][str(stage_num)] = {
+                "stage": stage_num, "name": stage_name, "actions": [],
+                "skipped": True, "reason": "条件不满足"
+            }
+            continue
 
         stage_result = {"stage": stage_num, "name": stage_name, "actions": []}
 
