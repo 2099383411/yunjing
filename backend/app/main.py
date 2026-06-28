@@ -7,7 +7,7 @@ from starlette.responses import RedirectResponse
 from app.config import settings
 from app.api import auth, chat, tasks, reports, settings_api, updates, users, roles_api, llm_providers
 from app.api import ws, audit, api_keys, schedules, webhooks, system_info, tools_status, dashboard, reasoning, perception, negative, deduction, execution, report, engine_api
-from app.api import phishing, review
+from app.api import phishing, review, analyst
 from app.api import skills, notifications, report_templates
 from app.grounding.api import router as grounding_router
 
@@ -143,6 +143,7 @@ app.include_router(engine_api.router, prefix="/api/engine", tags=["引擎"])
 app.include_router(reasoning.router, prefix="/api/reasoning", tags=["推理链"])
 app.include_router(phishing.router, prefix="/api", tags=["社工钓鱼"])
 app.include_router(review.router, prefix="/api", tags=["复盘"])
+app.include_router(analyst.router, prefix="/api", tags=["AI分析"])
 
 
 @app.get("/api/health")
