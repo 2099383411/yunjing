@@ -397,8 +397,8 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                                 _save_sess.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
                                     role="tool", content=_r["content"], tool_call_id=_r["tool_call_id"]))
                             await _save_sess.commit()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logging.getLogger(__name__).error(f"Failed to save assistant/tool messages: {e}", exc_info=True)
 
 
                     # ⭐ WebSocket 实时接收扫描进度 ⭐
