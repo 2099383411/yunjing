@@ -168,7 +168,7 @@ async def scan_callback(data: dict):
         async with AsyncSessionLocal() as sess:
             hs = HypothesisScanner(le)
             # 从学习引擎获取当前活跃假设
-            active = le.get_active_hypotheses()
+            active = le.get_active_hypotheses() if hasattr(le, "get_active_hypotheses") else [] if hasattr(le, "get_active_hypotheses") else []
             if active:
                 hypothesis = None
                 for h in active:
@@ -182,7 +182,9 @@ async def scan_callback(data: dict):
                 logger.warning(f"[扫描回调] 无活跃假设, 跳过")
                 hypothesis = None
         le.amplify_weights()
-        logger.info(f"[扫描回调] 假设更新: {hypothesis.status.value if hypothesis else '无'}")
+        hs_s = getattr(hypothesis, "status", None)
+        hs_v = getattr(hs_s, "value", "无")
+        logger.info(f"[扫描回调] 假设更新: {hs_v}")
         le.amplify_weights()  # 经验闭环：成功经验自动提升权重
 
         # 3. 自动同步经验到 Qdrant
@@ -202,7 +204,7 @@ async def scan_callback(data: dict):
             "status": "ok",
             "task_id": task_id,
             "learning_updated": True,
-            "hypothesis_status": hypothesis.status.value,
+            "hypothesis_status": getattr(getattr(hypothesis, "status", None), "value", None),
             "vuln_found": vuln_count,
         }
 
