@@ -548,7 +548,6 @@ async def chat(req: ChatRequest, credentials=Depends(verify_basic_auth)):
         )
 
         content = response.choices[0].message.content or ""
-        reasoning = response.choices[0].message.reasoning_content or ""
         reasoning = getattr(response.choices[0].message, "reasoning_content", "") or ""
 
         # 尝试解析 JSON 扫描计划
