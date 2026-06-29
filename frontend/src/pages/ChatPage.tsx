@@ -258,7 +258,7 @@ export default function ChatPage() {
       if (!reader) throw new Error("No reader");
 
       const decoder = new TextDecoder();
-      let buf = "", full = "", done = false;
+      let buf = "", full = "", done = false, hasToolCall = false;
 
       while (true) {
         const { done: rd, value } = await reader.read();
@@ -274,6 +274,7 @@ export default function ChatPage() {
             const chunk = JSON.parse(js);
             if (chunk.token !== undefined) { full += chunk.token; setStreamingContent(full); }
             if (chunk.type === "tool_call" && chunk.tool_call?.function?.name === "start_scan") {
+              hasToolCall = true;
               try {
                 const args = typeof chunk.tool_call.function.arguments === "string"
                   ? JSON.parse(chunk.tool_call.function.arguments) : chunk.tool_call.function.arguments;
@@ -293,15 +294,16 @@ export default function ChatPage() {
         }
       }
 
-      if (full) {
-        setMessages((p) => [...p, { id: "a-" + Date.now(), role: "assistant", content: full }]);
+      // Always add assistant message (even if LLM only did tool calls without text)
+      if (full || hasToolCall) {
+        setMessages((p) => [...p, { id: "a-" + Date.now(), role: "assistant", content: full || "🔧 操作已执行" }]);
       }
       setStreamingContent("");
-      // 延迟重载避免覆盖SSE刚写的内容
+      // Delay DB reload to avoid overwriting SSE content
       setTimeout(async () => {
         try { await reloadMessages(cid); } catch {}
         await loadConvs();
-      }, 800);
+      }, 1200);
     } catch (err: any) {
       antMsg.error(err.message || "发送失败");
     } finally { setSending(false); }
