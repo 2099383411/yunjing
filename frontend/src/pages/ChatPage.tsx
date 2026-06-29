@@ -160,6 +160,11 @@ export default function ChatPage() {
     finally { setConvLoading(false); }
   }
 
+  // ─── 静默重载消息（不显示loading，不覆盖streaming） ───
+  async function reloadMessages(cid: string) {
+    try { const r = await request.get("/chat/conversations/" + cid + "/messages"); const sm = r.data || []; if (sm.length > 0) setMessages(sm); } catch {}
+  }
+
   // ─── 加载任务状态 ───
   async function loadTaskState(tid: string) {
     try {
@@ -288,12 +293,18 @@ export default function ChatPage() {
         }
       }
 
-      if (full) { setMessages((p) => [...p, { id: "a-" + Date.now(), role: "assistant", content: full }]); setStreamingContent(""); }
-      try { const mr = await request.get("/chat/conversations/" + cid + "/messages"); const sm = mr.data || []; if (sm.length > 0) setMessages(sm); } catch {}
-      await loadConvs();
+      if (full) {
+        setMessages((p) => [...p, { id: "a-" + Date.now(), role: "assistant", content: full }]);
+      }
+      setStreamingContent("");
+      // 延迟重载避免覆盖SSE刚写的内容
+      setTimeout(async () => {
+        try { await reloadMessages(cid); } catch {}
+        await loadConvs();
+      }, 800);
     } catch (err: any) {
       antMsg.error(err.message || "发送失败");
-    } finally { setSending(false); setStreamingContent(""); }
+    } finally { setSending(false); }
   };
 
   // ─── 阶段指示器 ───

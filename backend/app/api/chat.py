@@ -16,6 +16,18 @@ from app.grounding.reasoning_capture import capture_reasoning
 from app.grounding.target_parser import extract_target, format_target_summary
 from app.api.skills import BUILTIN_SKILLS
 
+def _tool_summary(tool_calls):
+    """Generate a friendly summary when LLM only calls tools without text"""
+    if not tool_calls:
+        return " "
+    names = [tc.get("function", {}).get("name", "?") for tc in tool_calls[:3]]
+    name_labels = {"start_scan": "启动渗透扫描", "get_task_status": "查询任务状态",
+                   "get_task_vulnerabilities": "获取漏洞列表", "analyze_results": "AI 分析结果",
+                   "get_tools_status": "检查工具状态"}
+    labels = [name_labels.get(n, n) for n in names]
+    return "🔧 正在执行: " + ", ".join(labels) + "..."
+
+
 def _build_skills_section():
     layers = {"perception": "感知层", "deduction": "推演层", "execution": "执行层"}
     lines = [f"共 {len(BUILTIN_SKILLS)} 个已注册技能："]
@@ -380,7 +392,7 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                     try:
                         async with AsyncSessionLocal() as _save_sess:
                             _save_sess.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
-                                role="assistant", content=(full_content or "") or " ", tool_calls=tool_calls_data))
+                                role="assistant", content=(full_content or "") or _tool_summary(tool_calls_data), tool_calls=tool_calls_data))
                             for _r in results:
                                 _save_sess.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
                                     role="tool", content=_r["content"], tool_call_id=_r["tool_call_id"]))
@@ -610,7 +622,7 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                             try:
                                 async with AsyncSessionLocal() as _s:
                                     _s.add(Message(id=_a2_id, conversation_id=conv_id,
-                                        role="assistant", content=full_content or " ", tool_calls=tcd2_accum))
+                                        role="assistant", content=full_content or _tool_summary(tcd2_accum), tool_calls=tcd2_accum))
                                     for _rt in _t2_acc:
                                         _s.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
                                             role="tool", content=_rt["content"], tool_call_id=_rt["id"]))
