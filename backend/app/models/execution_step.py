@@ -9,7 +9,7 @@ class ExecutionStep(Base):
     __tablename__ = "execution_steps"
 
     id = Column(String(36), primary_key=True)
-    task_id = Column(String(36), nullable=False, index=True)
+    task_id = Column(String(64), nullable=False, index=True)
 
     # 推理过程 (来自推理过程捕获器)
     turn_id = Column(Integer, nullable=False)                # 对话轮次
