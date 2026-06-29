@@ -70,10 +70,28 @@ async def analyze_scan(data: dict, user: User = Depends(optional_user)):
             try:
                 analysis = json.loads(content)
             except json.JSONDecodeError:
-                # Extract JSON from markdown
-                import re
-                m = re.search(r'\{[^}]+\}', content, re.DOTALL)
-                analysis = json.loads(m.group(0)) if m else {"summary": content[:200], "next_steps": []}
+                # Extract JSON from markdown - 健壮大括号匹配
+                brace_depth = 0
+                json_start = -1
+                json_str = None
+                for i, ch in enumerate(content):
+                    if ch == '{':
+                        if json_start < 0:
+                            json_start = i
+                        brace_depth += 1
+                    elif ch == '}':
+                        brace_depth -= 1
+                        if brace_depth == 0 and json_start >= 0:
+                            candidate = content[json_start:i+1]
+                            try:
+                                import json as _jj
+                                analysis = _jj.loads(candidate)
+                                json_str = candidate
+                                break
+                            except json.JSONDecodeError:
+                                json_start = -1
+                if json_str is None:
+                    analysis = {"summary": content[:200], "next_steps": []}
             
             analysis["status"] = "ok"
             analysis["task_id"] = task_id

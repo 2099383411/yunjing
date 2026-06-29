@@ -164,6 +164,43 @@ async def scan_callback(data: dict):
         )
         logger.info(f"[扫描回调] 记录结果: task={task_id}, vulns={vuln_count}")
 
+        logger.info(f"[扫描回调] DBG: status={repr(status)}, task_id={task_id[:16]}")
+        # ── 4. AI 自动分析 + 推送回对话（放在最前面，确保总是执行）──
+        if status == "completed":
+            try:
+                from app.api.analyst import analyze_scan
+                _aj = await analyze_scan({"task_id": task_id}, None)
+                if isinstance(_aj, dict) and _aj.get("status") == "ok":
+                    _summary = _aj.get("summary", "")
+                    _next_steps = _aj.get("next_steps", [])
+                    _findings_count = _aj.get("findings_count", "?")
+                    _analysis_text = f"\\U0002705 \\u626b\\u63cf\\u5b8c\\u6210\\uff01\\u53d1\\u73b0 {_findings_count} \\u4e2a\\u95ee\\u9898\\n\\n\\U0001f4ca **AI \\u6e17\\u900f\\u5206\\u6790**\\n{_summary}\\n"
+                    if _next_steps:
+                        _analysis_text += "\\n\\U0001f3af **\\u4e0b\\u4e00\\u6b65\\u5efa\\u8bae**\\n" + "\\n".join(f"{i+1}. {s}" for i,s in enumerate(_next_steps[:5]))
+                    _analysis_text += "\\n"
+
+                    from app.models.execution_step import ExecutionStep
+                    from app.models.conversation import Message
+                    from sqlalchemy import select
+                    import uuid
+
+                    async with AsyncSessionLocal() as _sess:
+                        _rows = (await _sess.execute(
+                            select(ExecutionStep).where(ExecutionStep.task_id.like(f"chat-%{task_id[:8]}%")).limit(5)
+                        )).scalars().all()
+                        _conv_ids = set()
+                        for _st in _rows:
+                            _tid = _st.task_id or ""
+                            if _tid.startswith("chat-"):
+                                _conv_ids.add(_tid[5:])
+                        for _cid in _conv_ids:
+                            _sess.add(Message(id=str(uuid.uuid4()), conversation_id=_cid, role="assistant", content=_analysis_text))
+                        await _sess.commit()
+                        if _conv_ids:
+                            logger.info(f"[扫描回调] 分析已推送到 {len(_conv_ids)} 个对话")
+            except Exception as _ae:
+                logger.warning(f"[扫描回调] 分析推送失败: {_ae}")
+
         # 2. 更新假设（安全包裹，异常不影响主流程）
         try:
             async with AsyncSessionLocal() as sess:
@@ -199,42 +236,6 @@ async def scan_callback(data: dict):
                 logger.info(f"[扫描回调] 经验库向量已同步 (Qdrant: {rag.count('experience')} 条)")
         except Exception as e:
             logger.warning(f"[扫描回调] 向量同步失败（不影响主流程）: {e}")
-
-        # ── 4. AI 自动分析 + 推送回对话（直接调函数，不走HTTP）──
-        if status == "completed":
-            try:
-                from app.api.analyst import analyze_scan
-                _aj = await analyze_scan({"task_id": task_id})
-                if isinstance(_aj, dict) and _aj.get("status") == "ok":
-                    _summary = _aj.get("summary", "")
-                    _next_steps = _aj.get("next_steps", [])
-                    _findings_count = _aj.get("findings_count", "?")
-                    _analysis_text = f"\\U0002705 \\u626b\\u63cf\\u5b8c\\u6210\\uff01\\u53d1\\u73b0 {_findings_count} \\u4e2a\\u95ee\\u9898\\n\\n\\U0001f4ca **AI \\u6e17\\u900f\\u5206\\u6790**\\n{_summary}\\n"
-                    if _next_steps:
-                        _analysis_text += "\\n\\U0001f3af **\\u4e0b\\u4e00\\u6b65\\u5efa\\u8bae**\\n" + "\\n".join(f"{i+1}. {s}" for i,s in enumerate(_next_steps[:5]))
-                    _analysis_text += "\\n"
-                    
-                    from app.models.execution_step import ExecutionStep
-                    from app.models.conversation import Message
-                    from sqlalchemy import select
-                    import uuid
-                    
-                    async with AsyncSessionLocal() as _sess:
-                        _rows = (await _sess.execute(
-                            select(ExecutionStep).where(ExecutionStep.task_id.like(f"chat-%{task_id[:8]}%")).limit(5)
-                        )).scalars().all()
-                        _conv_ids = set()
-                        for _st in _rows:
-                            _tid = _st.task_id or ""
-                            if _tid.startswith("chat-"):
-                                _conv_ids.add(_tid[5:])
-                        for _cid in _conv_ids:
-                            _sess.add(Message(id=str(uuid.uuid4()), conversation_id=_cid, role="assistant", content=_analysis_text))
-                        await _sess.commit()
-                        if _conv_ids:
-                            logger.info(f"[扫描回调] 分析已推送到 {len(_conv_ids)} 个对话")
-            except Exception as _ae:
-                logger.warning(f"[扫描回调] 分析推送失败: {_ae}")
 
         return {
             "status": "ok",

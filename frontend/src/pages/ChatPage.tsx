@@ -200,16 +200,49 @@ export default function ChatPage() {
       ws.onmessage = (e) => {
         try {
           const d = JSON.parse(e.data);
+          // 任务状态
           if (d.progress !== undefined) setActiveTask((p: any) => ({ ...p, progress: d.progress }));
           if (d.status) setActiveTask((p: any) => ({ ...p, status: d.status }));
           if (d.phase) currentPhaseRef.current = d.phase;
+          
+          // 执行流水：阶段完成 → 添加步骤
+          if (d.type === "phase" && d.status === "done") {
+            const detail = d.data?.data || {};
+            const summary = Object.entries(detail).filter(([k,v]) => v).map(([k,v]) => `${k}=${v}`).join(" ") || "";
+            setSteps((prev) => [...prev, {
+              phase: d.phase,
+              tool: d.phase,
+              status: "done",
+              summary: summary,
+              duration_ms: d.data?.elapsed || 0,
+            }]);
+          }
+          // 执行流水：round_complete / completed → 最后步骤
+          if (d.type === "round_complete" || d.type === "completed") {
+            setSteps((prev) => [...prev, {
+              phase: d.type === "round_complete" ? "round_complete" : "scan_complete",
+              tool: d.type,
+              status: "done",
+              summary: d.data?.findings ? `发现 ${d.data.findings} 个漏洞` : "完成",
+              duration_ms: 0,
+            }]);
+          }
+          // 执行流水：vuln_findings → 从 findings 解析漏洞
+          if (d.type === "vuln_findings" && d.findings) {
+            d.findings.forEach((f: any) => {
+              setVulns((prev) => {
+                if (prev.find((v: any) => v.id === f.id || v.name === f.name)) return prev;
+                return [...prev, { id: f.id || f.name, name: f.name || "未知", severity: f.severity || "low", ...f }];
+              });
+            });
+          }
+          // 漏洞发现（兼容旧格式）
           if (d.vulnerability) {
             setVulns((prev) => {
               if (prev.find((v: any) => v.id === d.vulnerability.id)) return prev;
               return [...prev, d.vulnerability];
             });
           }
-          if (d.phase_result) setSteps((prev) => [...prev, d.phase_result]);
         } catch {}
       };
       ws.onerror = () => {};

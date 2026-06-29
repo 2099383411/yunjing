@@ -3,8 +3,8 @@
     "full": {
       "full": {
         "success": 0,
-        "total": 18,
-        "last_seen": 1782717793.1557662
+        "total": 22,
+        "last_seen": 1782718147.404796
       }
     },
     "phase_asset_discovery": {
@@ -20,10 +20,17 @@
         "total": 4,
         "last_seen": 1782716355.9469442
       }
+    },
+    "test": {
+      "test": {
+        "success": 0,
+        "total": 2,
+        "last_seen": 1782718230.8523579
+      }
     }
   },
   "pattern_weights": {
-    "full@full": 0.0928,
+    "full@full": 0.0609,
     "web@web": 0.595
   },
   "env_adaptation": {
@@ -1529,11 +1536,11 @@
     }
   },
   "meta": {
-    "total_experiments": 23,
+    "total_experiments": 29,
     "total_chains": 0,
     "total_experiences": 5,
     "created_at": 1782318675.715028,
-    "last_updated": 1782717793.1604192,
+    "last_updated": 1782718230.8523605,
     "version": "0.2"
   },
   "weights": {
