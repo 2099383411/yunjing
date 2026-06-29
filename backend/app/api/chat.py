@@ -360,7 +360,7 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                             "id": tc["id"],
                             "function": {"name": tc["function"]["name"], "arguments": tc["function"]["arguments"]}
                         })
-                        yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name, 'result': tc_result})}\n\n"
+                        yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name, 'result': json.loads(tc_result) if isinstance(tc_result, str) else tc_result})}\n\n"
                         results.append({"tool_call_id": tc["id"], "content": tc_result})
                         # Capture tool result
                         try:
