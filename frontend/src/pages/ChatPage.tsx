@@ -294,16 +294,15 @@ export default function ChatPage() {
         }
       }
 
-      // Always add assistant message (even if LLM only did tool calls without text)
+      // Always add assistant message from SSE content
       if (full || hasToolCall) {
         setMessages((p) => [...p, { id: "a-" + Date.now(), role: "assistant", content: full || "🔧 操作已执行" }]);
       }
+      // Do NOT reload from DB after SSE - it may not be saved yet and will clear SSE content.
+      // DB is only for persistence; SSE stream is the source of truth during live chat.
+      // DB reload only happens on page init via loadMessages().
       setStreamingContent("");
-      // Delay DB reload to avoid overwriting SSE content
-      setTimeout(async () => {
-        try { await reloadMessages(cid); } catch {}
-        await loadConvs();
-      }, 1200);
+      await loadConvs();
     } catch (err: any) {
       antMsg.error(err.message || "发送失败");
     } finally { setSending(false); }
