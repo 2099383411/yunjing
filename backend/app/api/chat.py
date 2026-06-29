@@ -1,5 +1,6 @@
-"""对话 API
-import logging：持久化会话 + LLM Function Calling"""
+"""对话 API：持久化会话 + LLM Function Calling"""
+import logging
+import logging
 import json, uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
@@ -733,8 +734,9 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                         result_summary=(full_content or "")[:200],
                         status="success", confidence_after=0.8,
                     )
-            except Exception:
-                pass
+            except Exception as e:
+
+                logging.getLogger(__name__).warning(f"Save failed: {e}", exc_info=True)
             # Save final analysis (no tool_calls)
             async with AsyncSessionLocal() as sess2:
                 sess2.add(Message(
