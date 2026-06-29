@@ -19,6 +19,8 @@ from sqlalchemy import create_engine, text as sa_text
 from sqlalchemy.orm import Session
 import logging
 
+from app.core.config import targets
+
 logger = logging.getLogger(__name__)
 
 from celery_app import app
@@ -1189,13 +1191,13 @@ def _action_credential_test(task_id, target, params, state):
                             pass
             
             # Also try with direct sshpass for common passwords
-            for pw in ["root", "admin", "password", "123456", "toor"]:
+            for pw in [targets.ROOT_PASSWORD, "admin", "password", "toor"]:
                 rc2, out2, _ = _execute_in_sandbox(
                     f"sshpass -p '{pw}' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=2 {host} -p {p} 'id' 2>/dev/null",
                     timeout=10
                 )
                 if rc2 == 0 and out2:
-                    found_user = "root"
+                    found_user = targets.ROOT_USERNAME
                     if "uid=" in out2:
                         import re
                         m = re.search(r'uid=(\d+)\((\w+)\)', out2)
@@ -1251,7 +1253,7 @@ def _action_smb_enum(task_id, target, params, state):
     return {"findings": findings, "summary": f"SMB: {len(findings)}"}
 
 def _action_lateral_probe(task_id, target, params, state):
-    subnet = params.get("subnet", "192.168.1.0/24") if isinstance(params, dict) else "192.168.1.0/24"
+    subnet = params.get("subnet", targets.DEFAULT_SUBNET) if isinstance(params, dict) else targets.DEFAULT_SUBNET
     result = _phase_asset_discovery(subnet)
     hosts = result.get("hosts", [])
     return {"findings": [], "hosts": hosts, "summary": f"Found {len(hosts)} hosts"}

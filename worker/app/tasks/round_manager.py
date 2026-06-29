@@ -14,6 +14,8 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+from app.core.config import targets
+
 # 阶段定义
 STAGES = {
     0: {"name": "信息收集", "actions": ["full_port_scan", "service_detect", "web_tech_detect"]},
@@ -105,7 +107,7 @@ def execute_round_1(task_id: str, target: str, host: str,
             # 可选的参数构造
             action_params = {}
             if action_name == "lateral_probe":
-                action_params = {"subnet": "192.168.1.0/24"}
+                action_params = {"subnet": targets.DEFAULT_SUBNET}
 
             # 执行 action
             result = execute_action_func(task_id, target, action_name, action_params, state)
@@ -733,7 +735,7 @@ def execute_round_2(task_id, target, instruction, previous_report, state, start_
         
         if "lateral_movement" in parsed["actions"]:
             # Execute lateral_probe
-            result = execute_action_func(task_id, target, "lateral_probe", {"subnet": "192.168.1.0/24"}, state)
+            result = execute_action_func(task_id, target, "lateral_probe", {"subnet": targets.DEFAULT_SUBNET}, state)
             _update_state_func(state, "lateral_probe", result)
             round2_result["actions"].append({"action": "lateral_probe", "result": result.get("summary", "")})
             round2_result["new_hosts"] = result.get("hosts", [])
