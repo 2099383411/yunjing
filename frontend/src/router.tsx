@@ -9,7 +9,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const TaskListPage = lazy(() => import("./pages/TaskListPage"));
 const ReportsListPage = lazy(() => import("./pages/ReportsListPage"));
-const ReviewPage = lazy(() => import("./pages/ReviewPage"));
+
 const ReportPage = lazy(() => import("./pages/ReportPage"));
 const ScheduleCenterPage = lazy(() => import("./pages/ScheduleCenterPage"));
 const ReasoningPage = lazy(() => import("./pages/ReasoningPage"));
@@ -76,7 +76,7 @@ export default function Router() {
         <Route path="/attack-surface" element={<AttackSurfacePage />} />
         <Route path="/experience" element={<ExperienceBrowserPage />} />
         <Route path="/sessions" element={<SessionManagerPage />} />
-        <Route path="/review" element={<ReviewPage />} />
+        
 
         {/* Social engineering */}
         <Route path="/phishing" element={<PhishingPage />} />
