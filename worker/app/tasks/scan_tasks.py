@@ -32,7 +32,15 @@ from tasks.scan_actions import (
     _phase_krb_scan, _phase_ad_enum, _phase_code_scan, _phase_threat_model,
 )
 
-from tasks.scan_decision import execute_scan
+# ═══════════════════════════════════════════════════════════
+#  扫描执行主入口（Celery 任务注册 → 委托给 scan_decision）
+# ═══════════════════════════════════════════════════════════
+
+@app.task(bind=True, max_retries=3)
+def execute_scan(self, task_id: str, target: str, scan_type: str = "full") -> dict:
+    """Celery 任务入口：执行扫描（委托给 scan_decision.execute_scan）"""
+    from tasks.scan_decision import execute_scan as _exec
+    return _exec(self, task_id, target, scan_type)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -71,8 +79,6 @@ def check_tool(self, name: str, version_flag: str = "") -> dict:
 def generate_report(self, task_id):
     return {"status": "pending", "task_id": task_id}
 
-
-@app.task(bind=True, max_retries=2)
 
 @app.task(bind=True, max_retries=3)
 def execute_round_2(self, task_id: str, target: str, instruction: str,
