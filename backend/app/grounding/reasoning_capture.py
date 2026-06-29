@@ -52,8 +52,12 @@ async def capture_reasoning(
         status=status,
         duration_ms=duration_ms,
     )
-    db.add(step)
-    await db.commit()
+    try:
+        db.add(step)
+        await db.commit()
+    except Exception:
+        # 如果 (task_id, turn_id) 已存在，跳过不报错
+        await db.rollback()
     return step_id
 
 
