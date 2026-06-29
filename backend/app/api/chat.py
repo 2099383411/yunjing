@@ -455,7 +455,7 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                                     "id": tc2["id"],
                                     "function": {"name": tc_name2, "arguments": tc2["function"]["arguments"]}
                                 })
-                                yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name2, 'result': tc_r2})}\n\n"
+                                yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name2, 'result': json.loads(tc_r2) if isinstance(tc_r2, str) else tc_r2})}\n\n"
                                 messages.append({"role": "tool", "tool_call_id": tc2["id"], "content": tc_r2})
                                 _t2_acc.append({"id": tc2["id"], "content": tc_r2})
                             # save second round
