@@ -164,58 +164,88 @@ async def scan_callback(data: dict):
         )
         logger.info(f"[扫描回调] 记录结果: task={task_id}, vulns={vuln_count}")
 
-        # 2. 更新假设
-        async with AsyncSessionLocal() as sess:
-            hs = HypothesisScanner(le)
-            # 从学习引擎获取当前活跃假设
-            active = le.get_active_hypotheses() if hasattr(le, "get_active_hypotheses") else [] if hasattr(le, "get_active_hypotheses") else []
-            if active:
+        # 2. 更新假设（安全包裹，异常不影响主流程）
+        try:
+            async with AsyncSessionLocal() as sess:
+                hs = HypothesisScanner(le)
+                active = le.get_active_hypotheses() if hasattr(le, "get_active_hypotheses") else []
                 hypothesis = None
-                for h in active:
-                    if target in (h.payload or ""):
-                        hypothesis = await hs.feed_back(h, True if status=="completed" else False, findings)
-                        break
+                if active:
+                    for h in active:
+                        if target in (h.payload or ""):
+                            try:
+                                hypothesis = await hs.feed_back(h, True if status=="completed" else False, findings)
+                            except Exception:
+                                pass
+                            break
                 if not hypothesis:
                     logger.warning(f"[扫描回调] 无匹配假设, 跳过")
-                    hypothesis = None
-            else:
-                logger.warning(f"[扫描回调] 无活跃假设, 跳过")
-                hypothesis = None
+            le.amplify_weights()
+            hs_s = getattr(hypothesis, "status", None)
+            hs_v = getattr(hs_s, "value", "无") if hs_s else "无"
+            logger.info(f"[扫描回调] 假设更新: {hs_v}")
+        except Exception as _he:
+            logger.warning(f"[扫描回调] 假设处理跳过: {_he}")
         le.amplify_weights()
-        hs_s = getattr(hypothesis, "status", None)
-        hs_v = getattr(hs_s, "value", "无")
-        logger.info(f"[扫描回调] 假设更新: {hs_v}")
-        le.amplify_weights()  # 经验闭环：成功经验自动提升权重
 
-        # 3. 自动同步经验到 Qdrant
+        # 3. 自动同步经验到 Qdrant（安全包裹）
         try:
             rag = RAGEngine()
-            # 读取最新的 learning_data.json
             with open(_LEARNING_PATH, "r") as f:
                 all_data = json.load(f)
             experiences = all_data.get("experiments", all_data.get("experiences", []))
             if experiences:
-                rag.index_experience(experiences, force=False)
+                rag.index_experience(experiences)
                 logger.info(f"[扫描回调] 经验库向量已同步 (Qdrant: {rag.count('experience')} 条)")
         except Exception as e:
             logger.warning(f"[扫描回调] 向量同步失败（不影响主流程）: {e}")
+
+        # ── 4. AI 自动分析 + 推送回对话（直接调函数，不走HTTP）──
+        if status == "completed":
+            try:
+                from app.api.analyst import analyze_scan
+                _aj = await analyze_scan({"task_id": task_id})
+                if isinstance(_aj, dict) and _aj.get("status") == "ok":
+                    _summary = _aj.get("summary", "")
+                    _next_steps = _aj.get("next_steps", [])
+                    _findings_count = _aj.get("findings_count", "?")
+                    _analysis_text = f"\\U0002705 \\u626b\\u63cf\\u5b8c\\u6210\\uff01\\u53d1\\u73b0 {_findings_count} \\u4e2a\\u95ee\\u9898\\n\\n\\U0001f4ca **AI \\u6e17\\u900f\\u5206\\u6790**\\n{_summary}\\n"
+                    if _next_steps:
+                        _analysis_text += "\\n\\U0001f3af **\\u4e0b\\u4e00\\u6b65\\u5efa\\u8bae**\\n" + "\\n".join(f"{i+1}. {s}" for i,s in enumerate(_next_steps[:5]))
+                    _analysis_text += "\\n"
+                    
+                    from app.models.execution_step import ExecutionStep
+                    from app.models.conversation import Message
+                    from sqlalchemy import select
+                    import uuid
+                    
+                    async with AsyncSessionLocal() as _sess:
+                        _rows = (await _sess.execute(
+                            select(ExecutionStep).where(ExecutionStep.task_id.like(f"chat-%{task_id[:8]}%")).limit(5)
+                        )).scalars().all()
+                        _conv_ids = set()
+                        for _st in _rows:
+                            _tid = _st.task_id or ""
+                            if _tid.startswith("chat-"):
+                                _conv_ids.add(_tid[5:])
+                        for _cid in _conv_ids:
+                            _sess.add(Message(id=str(uuid.uuid4()), conversation_id=_cid, role="assistant", content=_analysis_text))
+                        await _sess.commit()
+                        if _conv_ids:
+                            logger.info(f"[扫描回调] 分析已推送到 {len(_conv_ids)} 个对话")
+            except Exception as _ae:
+                logger.warning(f"[扫描回调] 分析推送失败: {_ae}")
 
         return {
             "status": "ok",
             "task_id": task_id,
             "learning_updated": True,
-            "hypothesis_status": getattr(getattr(hypothesis, "status", None), "value", None),
+            "hypothesis_status": getattr(getattr(hypothesis, "status", None), "value", None) if "hypothesis" in dir() else None,
             "vuln_found": vuln_count,
         }
-
     except Exception as e:
-        import traceback
-        logger.error(f"[扫描回调] 失败: {e}\n{traceback.format_exc()}")
-        logger.error(f"[扫描回调] 失败: {e}\n{traceback.format_exc()}")
+        logger.error(f"[扫描回调] 失败: {e}\\n{traceback.format_exc()}")
         return {"status": "ok", "message": "processed (with warnings)"}
-
-
-# ── 经验搜索（RAG 语义 + 关键词降级）──────────────────
 
 @router.post("/experience/search")
 async def experience_search(data: dict):

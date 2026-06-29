@@ -3,8 +3,8 @@
     "full": {
       "full": {
         "success": 0,
-        "total": 7,
-        "last_seen": 1782714130.217144
+        "total": 18,
+        "last_seen": 1782717793.1557662
       }
     },
     "phase_asset_discovery": {
@@ -16,15 +16,15 @@
     },
     "web": {
       "web": {
-        "success": 3,
-        "total": 3,
-        "last_seen": 1782713639.6192207
+        "success": 4,
+        "total": 4,
+        "last_seen": 1782716355.9469442
       }
     }
   },
   "pattern_weights": {
-    "full@full": 0.2953,
-    "web@web": 0.55
+    "full@full": 0.0928,
+    "web@web": 0.595
   },
   "env_adaptation": {
     "full": {
@@ -993,6 +993,289 @@
       "duration": 0.0,
       "pattern_id": "web",
       "target_type": "web"
+    },
+    {
+      "exp_id": "exp-1782716355-0d8fbe",
+      "created_at": 1782716355.94854,
+      "target": {
+        "host": "http://192.168.1.180:8080",
+        "type": "web"
+      },
+      "hypothesis": {
+        "name": "扫描验证: web@http://192.168.1.180:8080",
+        "pattern_id": "web",
+        "confidence": 0.8,
+        "target": "http://192.168.1.180:8080"
+      },
+      "signals": [
+        {
+          "type": "vulnerability",
+          "name": "DVWA Default Login",
+          "severity": "critical"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Sensitive Configuration Files Listing - Detect",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Target IP:          192.168.1.180",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Target Hostname:    192.168.1.180",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Target Port:        8080",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Platform:           Linux/Unix",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Start Time:         2026-06-29 06:46:35 (GMT0)",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Server: Apache/2.4.25 (Debian)",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[95] /: Cookie PHPSESSID created without the httponly flag. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[95] /: Cookie security created without the httponly flag. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "No CGI Directories found (use '-C all' to force check all possible dirs). CGI tests skipped.",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[600050] Apache/2.4.25 appears to be outdated (current is at least 2.4.66).",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[013587] /: Suggested security header missing: permissions-policy. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[013587] /: Suggested security header missing: referrer-policy. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[013587] /: Suggested security header missing: x-content-type-options. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[013587] /: Suggested security header missing: strict-transport-security. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[013587] /: Suggested security header missing: content-security-policy. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[750500] /config/: Directory indexing found.",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[000998] /config/: Configuration information may be available remotely.",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[750500] /docs/: Directory indexing found.",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[006333] /login.php: Admin login page/section found.",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[007224] /.gitignore: .gitignore file found. It is possible to grasp the directory structure.",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[007342] /: X-Frame-Options header is deprecated and was replaced with the Content-Security-Policy HTTP header with the frame-ancestors directive. See: https://developer.mozilla.org/en-US/docs/Web/HTT",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "[007352] /: The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type. See: https://www.netsparker.com/web",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "4439 requests: 16 errors and 15 items reported on the remote host",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "End Time:           2026-06-29 06:51:59 (GMT0) (324 seconds)",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "1 host(s) tested",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Start Time:         2026-06-29 06:52:40 (GMT0)",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "End Time:           2026-06-29 06:58:04 (GMT0) (324 seconds)",
+          "severity": "medium"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180/api",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180/api/",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180/assets",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180/assets/",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180/ws",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180/ws/",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/config",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/config/",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/docs",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/docs/",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/external",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/external/",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/favicon.ico",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/php.ini",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/robots.txt",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "Dir: http://192.168.1.180:8080/server-status",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "API: /api @ http://192.168.1.180:80 (HTTP 301)",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "API: /swagger @ http://192.168.1.180:80 (HTTP 200)",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "API: /openapi.json @ http://192.168.1.180:80 (HTTP 200)",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "API: /graphql @ http://192.168.1.180:80 (HTTP 200)",
+          "severity": "info"
+        },
+        {
+          "type": "vulnerability",
+          "name": "API: /api/health @ http://192.168.1.180:80 (HTTP 200)",
+          "severity": "info"
+        }
+      ],
+      "reasoning_path": [
+        "web automated scan"
+      ],
+      "verification": {
+        "method": "web",
+        "result": "Found 50 issues"
+      },
+      "exploitation": [
+        {
+          "status": "completed",
+          "findings": 50
+        }
+      ],
+      "success": true,
+      "duration": 0.0,
+      "pattern_id": "web",
+      "target_type": "web"
     }
   ],
   "experience_index": {
@@ -1003,7 +1286,8 @@
       "web": [
         "exp-1782708027-f7fe26",
         "exp-1782711255-5938b1",
-        "exp-1782713639-96e1d3"
+        "exp-1782713639-96e1d3",
+        "exp-1782716355-0d8fbe"
       ]
     },
     "by_target_type": {
@@ -1013,7 +1297,8 @@
       "web": [
         "exp-1782708027-f7fe26",
         "exp-1782711255-5938b1",
-        "exp-1782713639-96e1d3"
+        "exp-1782713639-96e1d3",
+        "exp-1782716355-0d8fbe"
       ]
     },
     "by_signal": {
@@ -1179,7 +1464,57 @@
         "exp-1782713639-96e1d3",
         "exp-1782713639-96e1d3",
         "exp-1782713639-96e1d3",
-        "exp-1782713639-96e1d3"
+        "exp-1782713639-96e1d3",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe",
+        "exp-1782716355-0d8fbe"
       ]
     },
     "by_result": {
@@ -1187,22 +1522,23 @@
         "exp-1782389920-2d3c65",
         "exp-1782708027-f7fe26",
         "exp-1782711255-5938b1",
-        "exp-1782713639-96e1d3"
+        "exp-1782713639-96e1d3",
+        "exp-1782716355-0d8fbe"
       ],
       "fail": []
     }
   },
   "meta": {
-    "total_experiments": 11,
+    "total_experiments": 23,
     "total_chains": 0,
-    "total_experiences": 4,
+    "total_experiences": 5,
     "created_at": 1782318675.715028,
-    "last_updated": 1782714130.2216074,
+    "last_updated": 1782717793.1604192,
     "version": "0.2"
   },
   "weights": {
     "web": {
-      "web": 2.000000000000001
+      "web": 3.0
     }
   }
 }
