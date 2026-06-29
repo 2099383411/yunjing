@@ -65,7 +65,7 @@ class RAGEngine:
     """RAG 检索引擎 v2 — 语义 + 关键词 双通道 + Reranker 精排"""
 
     def __init__(self):
-        _QdrantClient, _ = _get_qdrant_client()
+        _QdrantClient, _models = _get_qdrant_client()
         if _QdrantClient is None:
             import warnings
             warnings.warn("QdrantClient unavailable - RAGEngine disabled. Install qdrant-client SDK.")
@@ -73,6 +73,8 @@ class RAGEngine:
             self._http = None
             self._bge_url = None
             return
+        global qdrant_models
+        qdrant_models = _models
         self._qdrant = _QdrantClient(url=QDRANT_URL)
         self._bge_url = BGE_SERVICE_URL
         self._http = httpx.Client(timeout=60)
