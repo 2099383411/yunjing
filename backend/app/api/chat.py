@@ -412,12 +412,13 @@ async def chat(conv_id: str, data: dict, user: User = Depends(optional_user)):
                                 try:
                                     import websockets
                                     ws_url = f"ws://localhost:8000/api/ws/scan/{task_id}"
-                                    async with websockets.connect(ws_url, ping_interval=None, close_timeout=5) as ws:
+                                    async with websockets.connect(ws_url, ping_interval=None, close_timeout=5, open_timeout=10) as ws:
                                         while not scan_completed:
                                             try:
-                                                msg = await asyncio.wait_for(ws.recv(), timeout=120)
+                                                msg = await asyncio.wait_for(ws.recv(), timeout=30)
                                             except asyncio.TimeoutError:
-                                                yield f"data: {json.dumps({'token': '! 扫描超时，请手动查询进度\\n', 'done': False})}\\n\\n"
+                                                # WS超时，降级到后台轮询
+                                                yield f"data: {json.dumps({'token': '📡 扫描进行中，等待结果...\\n', 'done': False})}\\n\\n"
                                                 break
                                             try:
                                                 evt = json.loads(msg) if isinstance(msg, str) else json.loads(msg)
