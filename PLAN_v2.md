@@ -1,0 +1,234 @@
+# 云镜 2.0 实施计划
+
+## 概述
+
+将云镜从"全自动扫描器"升级为"对话制智能渗透系统"——LLM 做参谋、用户做决策、Kali 600+ 武器库做执行层。
+
+---
+
+## 架构决策
+
+| 决策 | 方案 | 理由 |
+|:----|:-----|:------|
+| 工作模式 | 4 种（Expert/Verify/Targeted/Assault） | 覆盖全部使用场景，mode switching 由 LLM 自动判断 |
+| 工具库发现 | **Qdrant 向量索引 + 语义搜索** | 600+ 工具全覆盖，无需维护清单 |
+| 武器库调用 | SSH/docker exec 到 Kali 容器 | 复用现有容器化架构，改一个函数 |
+| 对话制决策 | LLM 建议 → 用户确认 → 执行 | 核心模式：人不点头不动手 |
+| 灵魂文件 | 4 个 system prompt（按模式加载） | 借鉴 Hermes SOUL.md 模式 |
+
+---
+
+## 任务清单
+
+### Phase 1：基础设施
+
+#### 任务 1：Kali 工具库向量索引
+**描述：** 在 Kali 容器里跑一遍索引脚本，把所有工具的描述/类别/用法说明抽出来，写入 Qdrant 向量库。之后 LLM 通过语义搜索发现可用工具。
+
+**验收标准：**
+- [ ] Kali 容器 600+ 工具的元数据抽取脚本编写完成
+- [ ] 元数据写入 Qdrant `kali_tools` collection
+- [ ] `search_kali_tools("SQL注入")` 返回 sqlmap、jSQL 等 5+ 个相关工具
+- [ ] `search_kali_tools("端口扫描")` 返回 nmap、masscan、unicornscan 等
+
+**涉及文件：**
+- `worker/app/tasks/scan_helpers.py`（新增 `search_kali_tools()`）
+- `backend/app/engine/vector_store.py`（新增 collection 管理）
+
+**预估范围：** M（3-5 文件）
+
+---
+
+#### 任务 2：_exec_tool() 指向 Kali 容器
+**描述：** 把 `_exec_tool()` 和 `_check_target_alive()` 里的容器名从 `yunjing-sbx` 改成 `yunjing-kali`。
+
+**验收标准：**
+- [ ] scan_helpers.py 里所有 docker exec 命令指向 `yunjing-kali`
+- [ ] worker 连接 Kali 容器正常
+- [ ] 执行 `nmap`、`sqlmap` 等命令返回正常结果
+
+**涉及文件：**
+- `worker/app/tasks/scan_helpers.py`
+
+**预估范围：** XS（1 文件）
+
+---
+
+#### 任务 3：写 4 个 system prompt
+**描述：** 创建 4 个模式各自的角色定义文件 system prompt，放在统一目录下。
+
+**验收标准：**
+- [ ] `backend/app/core/prompts/expert.md`
+- [ ] `backend/app/core/prompts/verify.md`
+- [ ] `backend/app/core/prompts/scanner.md`
+- [ ] `backend/app/core/prompts/assault.md`
+- [ ] 每个文件包含：角色定位 + 工作原则 + 约束边界 + 工具使用方式
+
+**涉及文件：**
+- `backend/app/core/prompts/*.md`（新建目录）
+
+**预估范围：** S（1-2 文件）
+
+---
+
+### 检查点 1：基础设施
+- [ ] Kali 工具索引正常工作
+- [ ] Worker 可调用 Kali 武器库
+- [ ] 4 个 system prompt 内容完整
+
+---
+
+### Phase 2：对话决策流
+
+#### 任务 4：chat_stream.py 改为对话决策模式
+**描述：** 当前 SSE 流是 LLM 一次生成完所有内容后结束。改为：
+1. LLM 生成建议 + 工具调用 → yield 到前端（显示"建议：…… 要执行吗？"）
+2. 挂起，等待用户回复
+3. 用户回复到达 → LLM 判断是确认/否决/修改参数
+4. 确认 → 执行工具 → 继续出下一步建议
+5. 否决 → LLM 调整方案
+
+**验收标准：**
+- [ ] LLM 发出工具调用建议时，前端显示待用户确认
+- [ ] 用户回复"干"/"好"→ 工具执行，结果回到对话
+- [ ] 用户回复"不"→ LLM 出替代方案
+- [ ] 用户能修改参数（如"扫 22 端口就行"）
+- [ ] 工具执行结果包含在下一步的 LLM 上下文中
+
+**涉及文件：**
+- `backend/app/api/chat_stream.py`
+- `frontend/src/pages/ChatPage.tsx`
+
+**预估范围：** L（5-8 文件）
+
+---
+
+#### 任务 5：前端确认 UI
+**描述：** 在对话气泡中区分"LLM 建议"和"需用户确认"两种状态。建议消息底部显示 [确认] [否决] [修改] 三个按钮。
+
+**验收标准：**
+- [ ] LLM 建议头部显示 🤖 图标
+- [ ] 建议消息底部有确认/否决/修改按钮
+- [ ] 用户确认后按钮变为"已确认 ✓"
+- [ ] 执行结果显示在建议消息下方
+- [ ] 适配移动端
+
+**涉及文件：**
+- `frontend/src/pages/ChatPage.tsx`
+- `frontend/src/components/ChatMessage.tsx`（可能需新建）
+
+**预估范围：** M（3-5 文件）
+
+---
+
+### 检查点 2：对话决策流
+- [ ] 完整对话决策流跑通：建议 → 用户确认 → 执行 → 结果
+- [ ] 前端确认 UI 正常
+- [ ] 至少一个工具（nmap）的完整链路通过测试
+
+---
+
+### Phase 3：模式切换与经验库
+
+#### 任务 6：模式自动切换
+**描述：** LLM 根据用户输入的意图自动判断当前工作模式，加载对应的 system prompt + 工具集。
+
+**验收标准：**
+- [ ] 用户说"XX 漏洞是什么"→ 自动切 Expert 模式
+- [ ] 用户说"扫一下 XXX"→ 自动切 Scanner 模式
+- [ ] 用户说"全面渗透 XXX"→ 自动切 Assault 模式
+- [ ] 模式切换加载对应的 system prompt
+- [ ] 模式切换加载对应的工具集（Expert 模式不加载 nmap 等攻击工具）
+
+**涉及文件：**
+- `backend/app/core/prompts/*.md`
+- `backend/app/api/chat_stream.py`
+
+**预估范围：** M（3-5 文件）
+
+---
+
+#### 任务 7：安全约束层
+**描述：** 每种模式定义不同的操作边界：
+- Expert：不动任何目标
+- Verify：只读探测，不写文件、不弹 shell
+- Scanner：全量扫描，但利用类操作需用户确认
+- Assault：全量，但破坏性操作需用户二次确认
+
+**验收标准：**
+- [ ] Expert 模式下任何工具调用被拒绝
+- [ ] Verify 模式下 payload 类工具被过滤
+- [ ] Scanner 模式下高危操作（写入文件、反弹 shell）需用户确认
+- [ ] Assault 模式下写入/反弹需二次确认
+- [ ] 所有拒绝理由明确返回给用户
+
+**涉及文件：**
+- `backend/app/core/config.py`（新增安全策略）
+- `backend/app/api/chat_stream.py`
+
+**预估范围：** M（3-5 文件）
+
+---
+
+#### 任务 8：经验库 + RAG 接入对话
+**描述：** 每次 LLM 回复前，检索 Qdrant 经验库 + 知识库，把相关历史经验和技术文档注入上下文。
+
+**验收标准：**
+- [ ] Qdrant 经验库向量索引正常工作
+- [ ] LLM 生成回复前自动检索相关知识
+- [ ] 检索结果可见（如"基于历史经验：x86_64 目标 SQL 注入成功率 87%"）
+- [ ] 检索不影响对话响应速度（< 2s）
+
+**涉及文件：**
+- `backend/app/api/chat_stream.py`
+- `backend/app/engine/vector_store.py`
+
+**预估范围：** M（3-5 文件）
+
+---
+
+### 检查点 3：完整链路
+- [ ] 四种模式切换正常
+- [ ] 安全约束层正常工作
+- [ ] 经验库 + RAG 注入生效
+- [ ] 端到端验收：发起扫描 → 决策 → 执行 → 报告
+
+---
+
+## 实施依赖图
+
+```
+任务 1（Kali 索引）←── 任务 2（指向 Kali）←── 任务 4（对话决策）
+                                                      │
+任务 3（system prompt）────────────┘                │
+                                                      ↓
+                                              任务 5（前端 UI）
+                                                      │
+                                                      ↓
+                                        任务 6（模式切换）+ 任务 7（安全层）+ 任务 8（RAG）
+```
+
+---
+
+## 风险与应对
+
+| 风险 | 影响 | 应对 |
+|:-----|:-----|:-----|
+| Kali 工具元数据不完整 | 高 | 先用 dpkg + apt-cache 做主索引，不完整的后续补充 |
+| 对话决策模式打破现有流式逻辑 | 中 | 先保持代码分支，现有全自动模式作为 fallback |
+| Qdrant 性能瓶颈 | 低 | 600 条向量/次检索 < 100ms，现有索引机制足够 |
+| 用户确认 UI 开发工作量大 | 中 | 先用文本按钮（Y/n）实现，UI 美化后置 |
+
+---
+
+## 开放问题（已确定）
+
+| 问题 | 决策 | 理由 |
+|:-----|:-----|:------|
+| 工具描述语言？ | **英文**，不翻译 | LLM 理解英文没问题，省去翻译损耗 |
+| man page 抽取策略？ | `whatis` + `--help` + `apt-cache` | 不跑 `man`（600+ 个太慢），取包描述 + 命令名 + help 摘要 + 用法示例 |
+| 用户确认超时？ | **不设超时** | 就像两人对话——LLM 出建议，用户啥时候看到啥时候回，上下文保留在对话历史里 |
+
+---
+
+你审一下这个方案，有要调的告诉我，没问题我按 Phase 1 → 2 → 3 的顺序开干。
