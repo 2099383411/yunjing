@@ -5,11 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 from app.config import settings
-from app.api import auth, chat, tasks, reports, settings_api, updates, users, roles_api, llm_providers
-from app.api import ws, audit, api_keys, schedules, webhooks, system_info, tools_status, dashboard, reasoning, perception, negative, deduction, execution, report, engine_api
-from app.api import phishing, review, analyst, report_download
-from app.api import skills, notifications, report_templates
-from app.grounding.api import router as grounding_router
+from app.api import auth, chat, tasks, reports, settings_api, users
+from app.api import ws, audit, system_info, tools_status, dashboard, engine_api
+from app.api import analyst, report_download
+from app.api import notifications
 
 # ── Seed default role/permissions on startup ──────────────────────────────
 async def seed_rbac():
@@ -95,8 +94,8 @@ async def trailing_slash_middleware(request, call_next):
     import re
     path = request.url.path
     # 如果路径不带尾斜杠且对应路由只有带尾斜杠版本，自动重定向
-    if not path.endswith("/") and not path.startswith("/api/ws") and not path.startswith("/api/phishing"):
-        slash_prefixes = ("/api/tasks", "/api/reports", "/api/schedules", "/api/engine", "/api/reasoning", "/api/perception", "/api/negative", "/api/deduction")
+    if not path.endswith("/") and not path.startswith("/api/ws"):
+        slash_prefixes = ("/api/tasks", "/api/reports", "/api/engine")
         for prefix in slash_prefixes:
             if path == prefix:
                 new_path = path + "/"
@@ -113,35 +112,16 @@ app.include_router(chat.router, prefix="/api/chat", tags=["对话"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["任务"])
 app.include_router(reports.router, prefix="/api/reports", tags=["报告"])
 app.include_router(settings_api.router, prefix="/api/settings", tags=["配置"])
-app.include_router(updates.router, prefix="/api/updates", tags=["更新"])
 app.include_router(users.router, prefix="/api/users", tags=["用户管理"])
-app.include_router(roles_api.router, prefix="/api/roles", tags=["角色管理"])
-app.include_router(reasoning.router, prefix="/api/reasoning", tags=["推理链"])
-app.include_router(perception.router, prefix="/api/perception", tags=["感知层"])
-app.include_router(negative.router, prefix="/api/negative", tags=["负向结果"])
-app.include_router(llm_providers.router, prefix="/api/llm", tags=["LLM 提供商"])
-app.include_router(api_keys.router, prefix="/api/api-keys", tags=["API Key"])
 app.include_router(ws.router, prefix="/api", tags=["WebSocket"])
 app.include_router(audit.router, prefix="/api/audit", tags=["审计日志"])
-app.include_router(schedules.router, prefix="/api/schedules", tags=["扫描计划"])
-app.include_router(webhooks.router, prefix="/api/webhooks", tags=["Webhook"])
 app.include_router(system_info.router, prefix="/api/system", tags=["系统信息"])
 app.include_router(tools_status.router, prefix="/api/tools", tags=["工具状态"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["仪表盘"])
-app.include_router(skills.router, tags=["技能管理"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["通知"])
-app.include_router(report_templates.router, prefix="/api/report-templates", tags=["报告模板"])
-# temporarily disabled
-# app.include_router(skill_import.router, tags=["技能导入"])
-app.include_router(grounding_router, tags=["接地层"])
-app.include_router(deduction.router, prefix="/api/deduction", tags=["推演层"])
-app.include_router(execution.router, prefix="/api/execution", tags=["执行层"])
-app.include_router(report.router, prefix="/api/report", tags=["报告层"])
 
 # 引擎数据展示
 app.include_router(engine_api.router, prefix="/api/engine", tags=["引擎"])
-app.include_router(phishing.router, prefix="/api", tags=["社工钓鱼"])
-app.include_router(review.router, prefix="/api", tags=["复盘"])
 app.include_router(analyst.router, prefix="/api", tags=["AI分析"])
 app.include_router(report_download.router, prefix="/api", tags=["报告下载"])
 
