@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Input, Button, Typography, Space, Card, Tag, Timeline, Badge,
   Spin, Progress, Tooltip, Empty, Dropdown, Modal, message as antMsg,
-  List, Divider, Row, Col, Statistic, Descriptions
+  List, Divider, Row, Col, Statistic, Descriptions, Select
 } from "antd";
 import request from "../api/request";
 
@@ -24,9 +24,19 @@ import BugOutlined from "@ant-design/icons/es/icons/BugOutlined";
 import SafetyOutlined from "@ant-design/icons/es/icons/SafetyOutlined";
 import CheckCircleOutlined from "@ant-design/icons/es/icons/CheckCircleOutlined";
 import CloseCircleOutlined from "@ant-design/icons/es/icons/CloseCircleOutlined";
+import EditOutlined from "@ant-design/icons/es/icons/EditOutlined";
+import DownOutlined from "@ant-design/icons/es/icons/DownOutlined";
 
 const { Text, Paragraph, Title } = Typography;
 const { TextArea } = Input;
+
+// ─── 专家角色定义 ───
+const EXPERT_ROLES = [
+  { emoji: "🛡️", name: "云鉴", desc: "安全顾问 · 知识问答/漏洞咨询", mode: "expert", color: "#0284c7" },
+  { emoji: "🔍", name: "云证", desc: "漏洞验证师 · 漏洞复现/验证", mode: "verify", color: "#22c55e" },
+  { emoji: "⚡", name: "云探", desc: "渗透测试师 · 自动化渗透", mode: "scanner", color: "#f97316" },
+  { emoji: "💥", name: "云破", desc: "红队指挥官 · 全面攻击模拟", mode: "assault", color: "#ef4444" },
+];
 
 // ─── 渗透阶段定义 ───
 const PHASES = [
@@ -66,8 +76,18 @@ interface ExecStep {
   status: string; risk_level: string; created_at: string;
 }
 
+// ─── 建议接口 ───
+interface Suggestion {
+  tool_call_id: string;
+  tool: string;
+  params: Record<string, any>;
+  reasoning: string;
+  status: "pending" | "confirmed" | "rejected";
+}
+
 const LS_CONV_ID = "yunjing_chat_convId";
 const LS_TASK_ID = "yunjing_chat_taskId";
+const LS_EXPERT = "yunjing_chat_expert";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -84,6 +104,17 @@ export default function ChatPage() {
   const [streamingContent, setStreamingContent] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 专家选择
+  const [currentExpert, setCurrentExpert] = useState<string>(() => {
+    return localStorage.getItem(LS_EXPERT) || EXPERT_ROLES[0].mode;
+  });
+
+  // LLM 建议
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [modifyModalVisible, setModifyModalVisible] = useState(false);
+  const [modifyTarget, setModifyTarget] = useState<Suggestion | null>(null);
+  const [modifyParamsText, setModifyParamsText] = useState("");
+
   // 任务
   const [activeTask, setActiveTask] = useState<any>(null);
   const [vulns, setVulns] = useState<VulnItem[]>([]);
@@ -92,10 +123,19 @@ export default function ChatPage() {
   const pollTimerRef = useRef<any>(null);
   const currentPhaseRef = useRef<string | null>(null);
 
+  // 当前专家对象
+  const currentExpertObj = EXPERT_ROLES.find((e) => e.mode === currentExpert) || EXPERT_ROLES[0];
+
+  // ─── 切换专家 ───
+  const handleExpertChange = (mode: string) => {
+    setCurrentExpert(mode);
+    localStorage.setItem(LS_EXPERT, mode);
+  };
+
   // ─── 自动滚动 ───
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, suggestions]);
 
   // ─── 初始化 ───
   useEffect(() => { initPage(); return () => cleanup(); }, []);
@@ -121,7 +161,8 @@ export default function ChatPage() {
   // ─── 新对话 ───
   async function createNewConv() {
     setSending(false); setStreamingContent(""); setMessages([]);
-    setActiveTask(null); setVulns([]); setSteps([]); currentPhaseRef.current = null;
+    setActiveTask(null); setVulns([]); setSteps([]); setSuggestions([]);
+    currentPhaseRef.current = null;
     if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     localStorage.removeItem(LS_TASK_ID);
     try {
@@ -135,7 +176,8 @@ export default function ChatPage() {
   async function switchConv(id: string) {
     if (id === convId) return;
     setSending(false); setStreamingContent(""); setMessages([]);
-    setActiveTask(null); setVulns([]); setSteps([]); currentPhaseRef.current = null;
+    setActiveTask(null); setVulns([]); setSteps([]); setSuggestions([]);
+    currentPhaseRef.current = null;
     if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     localStorage.removeItem(LS_TASK_ID);
     setConvId(id); localStorage.setItem(LS_CONV_ID, id);
@@ -147,7 +189,7 @@ export default function ChatPage() {
     e.stopPropagation();
     try {
       await request.delete("/chat/conversations/" + id);
-      if (convId === id) { setConvId(null); localStorage.removeItem(LS_CONV_ID); setMessages([]); setActiveTask(null); }
+      if (convId === id) { setConvId(null); localStorage.removeItem(LS_CONV_ID); setMessages([]); setActiveTask(null); setSuggestions([]); }
       await loadConvs(); antMsg.success("已删除");
     } catch { antMsg.error("删除失败"); }
   }
@@ -210,22 +252,30 @@ export default function ChatPage() {
             const detail = d.data?.data || {};
             const summary = Object.entries(detail).filter(([k,v]) => v).map(([k,v]) => `${k}=${v}`).join(" ") || "";
             setSteps((prev) => [...prev, {
+              id: "phase-" + Date.now(),
+              turn_id: prev.length + 1,
               phase: d.phase,
               tool: d.phase,
+              llm_decision: d.phase,
+              result_summary: summary,
               status: "done",
-              summary: summary,
-              duration_ms: d.data?.elapsed || 0,
-            }]);
+              risk_level: "info",
+              created_at: new Date().toISOString(),
+            } as ExecStep]);
           }
           // 执行流水：round_complete / completed → 最后步骤
           if (d.type === "round_complete" || d.type === "completed") {
             setSteps((prev) => [...prev, {
+              id: "step-" + Date.now(),
+              turn_id: prev.length + 1,
               phase: d.type === "round_complete" ? "round_complete" : "scan_complete",
               tool: d.type,
+              llm_decision: d.type,
+              result_summary: d.data?.findings ? `发现 ${d.data.findings} 个漏洞` : "完成",
               status: "done",
-              summary: d.data?.findings ? `发现 ${d.data.findings} 个漏洞` : "完成",
-              duration_ms: 0,
-            }]);
+              risk_level: "info",
+              created_at: new Date().toISOString(),
+            } as ExecStep]);
           }
           // 执行流水：vuln_findings → 从 findings 解析漏洞
           if (d.type === "vuln_findings" && d.findings) {
@@ -258,6 +308,65 @@ export default function ChatPage() {
     return steps[steps.length - 1].phase || null;
   }
 
+  // ─── 发送建议响应 ───
+  async function sendSuggestionResponse(type: string, toolCallId: string, params?: Record<string, any>) {
+    const stored = localStorage.getItem("auth-storage");
+    const token = stored ? JSON.parse(stored).state?.token : null;
+    try {
+      const resp = await fetch("/api/chat/suggestions/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+        body: JSON.stringify({ type, tool_call_id: toolCallId, params }),
+      });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const data = await resp.json();
+      antMsg.success(data.message || "操作已发送");
+      return data;
+    } catch (err: any) {
+      antMsg.error(err.message || "发送失败");
+      return null;
+    }
+  }
+
+  // ─── 确认建议 ───
+  const confirmSuggestion = async (s: Suggestion) => {
+    const result = await sendSuggestionResponse("confirm", s.tool_call_id);
+    if (result) {
+      setSuggestions((prev) => prev.map((sg) => sg.tool_call_id === s.tool_call_id ? { ...sg, status: "confirmed" as const } : sg));
+    }
+  };
+
+  // ─── 否决建议 ───
+  const rejectSuggestion = async (s: Suggestion) => {
+    const result = await sendSuggestionResponse("reject", s.tool_call_id);
+    if (result) {
+      setSuggestions((prev) => prev.map((sg) => sg.tool_call_id === s.tool_call_id ? { ...sg, status: "rejected" as const } : sg));
+    }
+  };
+
+  // ─── 打开修改弹窗 ───
+  const openModifyModal = (s: Suggestion) => {
+    setModifyTarget(s);
+    setModifyParamsText(JSON.stringify(s.params, null, 2));
+    setModifyModalVisible(true);
+  };
+
+  // ─── 提交修改 ───
+  const submitModify = async () => {
+    if (!modifyTarget) return;
+    try {
+      const parsedParams = JSON.parse(modifyParamsText);
+      const result = await sendSuggestionResponse("modify", modifyTarget.tool_call_id, parsedParams);
+      if (result) {
+        setSuggestions((prev) => prev.map((sg) => sg.tool_call_id === modifyTarget.tool_call_id ? { ...sg, status: "confirmed" as const } : sg));
+        setModifyModalVisible(false);
+        setModifyTarget(null);
+      }
+    } catch {
+      antMsg.error("参数格式错误，请输入有效的 JSON");
+    }
+  };
+
   // ─── 发送消息 (SSE流式) ───
   const handleSend = async () => {
     const text = input.trim();
@@ -283,7 +392,7 @@ export default function ChatPage() {
       const resp = await fetch("/api/chat/conversations/" + cid + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
-        body: JSON.stringify({ text, stream: true }),
+        body: JSON.stringify({ text, stream: true, mode: currentExpert }),
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
 
@@ -305,14 +414,34 @@ export default function ChatPage() {
           if (!js) continue;
           try {
             const chunk = JSON.parse(js);
+
+            // ─── token 流 ───
             if (chunk.token !== undefined) { full += chunk.token; setStreamingContent(full); }
+
+            // ─── LLM 建议 ───
+            if (chunk.type === "suggestion" && chunk.tool_call_id) {
+              const sug: Suggestion = {
+                tool_call_id: chunk.tool_call_id,
+                tool: chunk.tool || "",
+                params: chunk.params || {},
+                reasoning: chunk.reasoning || "",
+                status: "pending",
+              };
+              setSuggestions((prev) => {
+                const exists = prev.find((s) => s.tool_call_id === sug.tool_call_id);
+                if (exists) return prev;
+                return [...prev, sug];
+              });
+            }
+
+            // ─── 工具调用 ───
             if (chunk.type === "tool_call" && chunk.tool_call?.function?.name === "start_scan") {
               hasToolCall = true;
               try {
                 const args = typeof chunk.tool_call.function.arguments === "string"
                   ? JSON.parse(chunk.tool_call.function.arguments) : chunk.tool_call.function.arguments;
                 if (args.target) {
-                  setMessages((p) => [...p, { id: "start-" + Date.now(), role: "assistant", content: "\uD83D\uDD04 正在对 **" + args.target + "** 启动全面安全检测..." }]);
+                  setMessages((p) => [...p, { id: "start-" + Date.now(), role: "assistant", content: "🔧 正在对 **" + args.target + "** 启动全面安全检测..." }]);
                 }
               } catch {}
             }
@@ -331,9 +460,6 @@ export default function ChatPage() {
       if (full || hasToolCall) {
         setMessages((p) => [...p, { id: "a-" + Date.now(), role: "assistant", content: full || "🔧 操作已执行" }]);
       }
-      // Do NOT reload from DB after SSE - it may not be saved yet and will clear SSE content.
-      // DB is only for persistence; SSE stream is the source of truth during live chat.
-      // DB reload only happens on page init via loadMessages().
       setStreamingContent("");
       await loadConvs();
     } catch (err: any) {
@@ -398,6 +524,55 @@ export default function ChatPage() {
     );
   };
 
+  // ─── 建议卡片渲染 ───
+  const renderSuggestionCard = (s: Suggestion) => {
+    const expert = EXPERT_ROLES.find((e) => e.mode === currentExpert) || EXPERT_ROLES[0];
+    const isPending = s.status === "pending";
+    return (
+      <div key={s.tool_call_id} style={{
+        marginTop: 8,
+        padding: "10px 14px",
+        borderRadius: 8,
+        background: "rgba(255, 248, 225, 0.6)",
+        border: "1px solid #fde68a",
+        fontSize: 12,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <Tag color="orange" style={{ fontSize: 9, margin: 0 }}>💡 建议</Tag>
+          <Text code style={{ fontSize: 10 }}>{s.tool}</Text>
+        </div>
+        {s.reasoning && (
+          <Text style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>
+            {s.reasoning}
+          </Text>
+        )}
+        <div style={{ background: "#f1f5f9", borderRadius: 4, padding: "4px 8px", marginBottom: 8, fontSize: 10, fontFamily: "monospace", whiteSpace: "pre-wrap", color: "#475569" }}>
+          {JSON.stringify(s.params, null, 2)}
+        </div>
+        {isPending ? (
+          <Space size={4}>
+            <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => confirmSuggestion(s)}
+              style={{ fontSize: 10, height: 24, background: "#22c55e", borderColor: "#22c55e" }}>
+              确认
+            </Button>
+            <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => rejectSuggestion(s)}
+              style={{ fontSize: 10, height: 24 }}>
+              否决
+            </Button>
+            <Button size="small" icon={<EditOutlined />} onClick={() => openModifyModal(s)}
+              style={{ fontSize: 10, height: 24 }}>
+              修改
+            </Button>
+          </Space>
+        ) : (
+          <Tag color={s.status === "confirmed" ? "success" : "error"} style={{ fontSize: 9, margin: 0 }}>
+            {s.status === "confirmed" ? "✓ 已确认" : "✗ 已否决"}
+          </Tag>
+        )}
+      </div>
+    );
+  };
+
   // ─── 消息气泡 ───
   const renderMessage = (msg: Message, streaming = false) => {
     const isUser = msg.role === "user";
@@ -412,7 +587,7 @@ export default function ChatPage() {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 2 }}>
             {isUser ? <UserOutlined style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }} /> : <RobotOutlined style={{ fontSize: 10, color: "#0284c7" }} />}
-            <Text style={{ fontSize: 9, fontWeight: 600, color: isUser ? "rgba(255,255,255,0.7)" : "#94a3b8" }}>{isUser ? "您" : "云镜"}</Text>
+            <Text style={{ fontSize: 9, fontWeight: 600, color: isUser ? "rgba(255,255,255,0.7)" : "#94a3b8" }}>{isUser ? "您" : currentExpertObj.emoji + " " + currentExpertObj.name}</Text>
           </div>
           <Paragraph style={{ margin: 0, color: "inherit", whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.5 }}>{msg.content}</Paragraph>
         </div>
@@ -428,14 +603,53 @@ export default function ChatPage() {
       {/* ─── 左侧：对话区 ─── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0", overflow: "hidden", minWidth: 0 }}>
         
-        {/* 头部 */}
-        <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)" }}>
+        {/* 头部 - 专家选择器 */}
+        <div style={{
+          padding: "8px 14px", borderBottom: "1px solid #e2e8f0",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexShrink: 0, background: `linear-gradient(135deg, ${currentExpertObj.color} 0%, ${currentExpertObj.color}dd 100%)`,
+        }}>
           <Space>
-            <RobotOutlined style={{ color: "#fff", fontSize: 16 }} />
-            <div>
-              <Text strong style={{ fontSize: 13, color: "#fff" }}>智能渗透对话</Text>
-              <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", display: "block", lineHeight: 1.2 }}>AI 渗透测试专家</Text>
-            </div>
+            <Dropdown
+              menu={{
+                items: EXPERT_ROLES.map((role) => ({
+                  key: role.mode,
+                  label: (
+                    <div
+                      onClick={() => handleExpertChange(role.mode)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8, padding: "4px 0",
+                        opacity: role.mode === currentExpert ? 1 : 0.7,
+                      }}
+                    >
+                      <span style={{ fontSize: 18 }}>{role.emoji}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: role.mode === currentExpert ? 600 : 400, color: "#1e293b" }}>
+                          {role.name}
+                          {role.mode === currentExpert && (
+                            <Tag style={{ fontSize: 8, marginLeft: 6, padding: "0 4px" }} color="blue">当前</Tag>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 10, color: "#64748b" }}>{role.desc}</div>
+                      </div>
+                    </div>
+                  ),
+                })),
+                style: { minWidth: 220 },
+              }}
+              trigger={["click"]}
+            >
+              <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}>
+                <span style={{ fontSize: 20 }}>{currentExpertObj.emoji}</span>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Text strong style={{ fontSize: 14, color: "#fff" }}>{currentExpertObj.name}</Text>
+                    <DownOutlined style={{ fontSize: 9, color: "rgba(255,255,255,0.7)" }} />
+                  </div>
+                  <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", display: "block", lineHeight: 1.2 }}>{currentExpertObj.desc}</Text>
+                </div>
+              </div>
+            </Dropdown>
             {activeTask?.status === "RUNNING" && <Badge status="processing" color="#fff" />}
           </Space>
           <Space size={4}>
@@ -450,12 +664,12 @@ export default function ChatPage() {
         <div style={{ flex: 1, overflow: "auto", padding: "12px 16px", background: "#f8fafc" }}>
           {convLoading ? <div style={{ textAlign: "center", paddingTop: 40 }}><Spin /></div> : messages.length === 0 && !streamingContent ? (
             <div style={{ textAlign: "center", padding: "40px 20px" }}>
-              <RobotOutlined style={{ fontSize: 48, color: "#0284c7", marginBottom: 16 }} />
+              <span style={{ fontSize: 48 }}>{currentExpertObj.emoji}</span>
               <Title level={4} style={{ color: "#1e293b", marginBottom: 8, fontWeight: 600 }}>
-                云镜 AI 渗透助手
+                {currentExpertObj.name} AI 渗透助手
               </Title>
               <Text style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 20 }}>
-                输入目标，AI 自动完成渗透测试全流程
+                {currentExpertObj.desc} — 输入目标，AI 自动完成渗透测试全流程
               </Text>
               {/* 零基础快速入口 */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 340, margin: "0 auto" }}>
@@ -480,7 +694,16 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-          ) : <>{messages.map((m) => renderMessage(m))}{streamingContent ? renderMessage({ id: "st", role: "assistant", content: streamingContent }, true) : null}</>}
+          ) : <>
+            {messages.map((m) => renderMessage(m))}
+            {streamingContent ? renderMessage({ id: "st", role: "assistant", content: streamingContent }, true) : null}
+            {/* 建议卡片 */}
+            {suggestions.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                {suggestions.map((s) => renderSuggestionCard(s))}
+              </div>
+            )}
+          </>}
           <div ref={messagesEndRef} />
         </div>
 
@@ -535,6 +758,34 @@ export default function ChatPage() {
           <Button size="small" icon={<FileTextOutlined />} onClick={() => navigate("/reports")} style={{ fontSize: 11 }}>报告</Button>
         </Space>
       </div>
+
+      {/* 修改参数弹窗 */}
+      <Modal
+        title="✏ 修改建议参数"
+        open={modifyModalVisible}
+        onOk={submitModify}
+        onCancel={() => setModifyModalVisible(false)}
+        okText="提交修改"
+        cancelText="取消"
+      >
+        {modifyTarget && (
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              <Text strong style={{ fontSize: 12 }}>工具：</Text>
+              <Tag color="blue" style={{ fontSize: 10 }}>{modifyTarget.tool}</Tag>
+            </div>
+            <div style={{ marginBottom: 4 }}>
+              <Text style={{ fontSize: 11, color: "#64748b" }}>参数 (JSON 格式)：</Text>
+            </div>
+            <TextArea
+              value={modifyParamsText}
+              onChange={(e) => setModifyParamsText(e.target.value)}
+              rows={8}
+              style={{ fontSize: 11, fontFamily: "monospace" }}
+            />
+          </div>
+        )}
+      </Modal>
 
       {/* 光标闪烁动画 */}
       <style>{".cursor-blink { animation: blink 1s infinite; } @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }"}</style>

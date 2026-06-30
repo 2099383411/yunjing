@@ -20,12 +20,19 @@ from app.api.chat_helpers import (
 
 logger = logging.getLogger(__name__)
 
+# ── 对话决策模式：pending tool calls ──
+_pending_tool_calls: dict[str, list[dict]] = {}  # conv_id → pending tool_call list
+
+CONFIRM_KEYWORDS = ["干", "好", "确认", "可以", "试试", "来吧", "yes", "do it", "y", "是", "ok", "好的", "行", "中", "搞"]
+REJECT_KEYWORDS = ["不", "不用", "否决", "算了", "no", "n", "不干", "不要", "不了", "别", "取消"]
+
 
 async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
     """对话式渗透 — 每次消息都是一次交互（SSE 流式版本）"""
     text = data.get("text", "")
     stream = data.get("stream", True)
     history = data.get("history", None)
+    mode = data.get("mode", "expert")
 
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
@@ -40,6 +47,18 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
 
         # 初始 system prompt（含技能列表）
         system_content = SYSTEM_PROMPT.replace(_SKILLS_PH, _build_skills_section())
+
+        # 根据 mode 加载额外 system prompt
+        import os
+        prompt_path = os.path.join(os.path.dirname(__file__), "../core/prompts", mode + ".md")
+        if os.path.exists(prompt_path):
+            try:
+                with open(prompt_path, encoding="utf-8") as f:
+                    mode_prompt = f.read().strip()
+                if mode_prompt:
+                    system_content += "\n\n" + mode_prompt
+            except Exception as e:
+                logger.warning(f"Failed to load mode prompt '{mode}.md': {e}")
 
         messages = [{"role": "system", "content": system_content}]
 
@@ -159,242 +178,44 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
                     full_content += content
                     yield f"data: {json.dumps({'token': content, 'done': False})}\n\n"
 
-                if finish == "tool_calls":
+                if finish == "tool_calls" and tool_calls_data:
                     done_reason = "tool_calls"
-                    results = []
-                    for tc in (tool_calls_data or []):
-                        tc_name = tc["function"]["name"]
-                        try:
-                            tc_args = json.loads(tc["function"]["arguments"])
-                        except:
-                            tc_args = {}
-                        yield f"data: {json.dumps({'type': 'tool_call', 'name': tc_name, 'arguments': tc_args})}\n\n"
-                        # Capture reasoning
-                        try:
-                            from app.database import AsyncSessionLocal as ASL_S
-                            async with ASL_S() as gsess:
-                                await capture_reasoning(
-                                    db=gsess, task_id=f"chat-{conv_id}",
-                                    turn_id=len([m for m in messages if m["role"] in ("assistant","tool")]) // 2 + 1,
-                                    llm_decision=f"调用 {tc_name}",
-                                    llm_reasoning=reasoning_content or "流式推理",
-                                    evidence_type="推理",
-                                    tool=tc_name, target=str(tc_args)[:200],
-                                    status="running", confidence_before=0.5,
-                                )
-                        except Exception as e:
-                            logger.warning(f"Capture tool result failed: {e}")
-                        tc_result = await execute_tool_call({
-                            "id": tc["id"],
-                            "function": {"name": tc["function"]["name"], "arguments": tc["function"]["arguments"]}
-                        })
-                        yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name, 'result': json.loads(tc_result) if isinstance(tc_result, str) else tc_result})}\n\n"
-                        results.append({"tool_call_id": tc["id"], "content": tc_result})
-                        # Capture tool result
-                        try:
-                            from app.database import AsyncSessionLocal as ASL_S2
-                            async with ASL_S2() as gsess2:
-                                await capture_reasoning(
-                                    db=gsess2, task_id=f"chat-{conv_id}",
-                                    turn_id=len([m for m in messages if m["role"] in ("assistant","tool")]) // 2 + 1,
-                                    llm_decision=f"工具 {tc_name} 执行完成",
-                                    evidence_type="执行",
-                                    tool=tc_name,
-                                    result_summary=(tc_result or "")[:200],
-                                    status="success" if tc_result else "failed",
-                                    confidence_after=0.7 if tc_result else 0.3,
-                                )
-                        except Exception as e:
-                            logger.warning(f"Capture tool result failed: {e}")
-
+                    # ── 对话决策模式：建议→等待用户确认 ──
+                    # 1. 保存 assistant 消息（含 tool_calls）到 messages 和 DB
+                    asst_content = (full_content or "") or _tool_summary(tool_calls_data)
                     asst_dict = {
                         "role": "assistant",
-                        "content": (full_content or "") or " ",
+                        "content": asst_content,
                         "tool_calls": tool_calls_data,
                     }
                     if reasoning_content:
                         asst_dict["reasoning_content"] = reasoning_content
                     messages.append(asst_dict)
-                    for r in results:
-                        messages.append({"role": "tool", "tool_call_id": r["tool_call_id"], "content": r["content"]})
-                    # 保存第一轮 assistant+tool 消息到 DB
                     try:
                         async with AsyncSessionLocal() as _save_sess:
-                            _save_sess.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
-                                role="assistant", content=(full_content or "") or _tool_summary(tool_calls_data), tool_calls=tool_calls_data))
-                            for _r in results:
-                                _save_sess.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
-                                    role="tool", content=_r["content"], tool_call_id=_r["tool_call_id"]))
+                            _save_sess.add(Message(
+                                id=str(uuid.uuid4()), conversation_id=conv_id,
+                                role="assistant", content=asst_content, tool_calls=tool_calls_data,
+                            ))
                             await _save_sess.commit()
                     except Exception as e:
-                        logger.error(f"Failed to save assistant/tool messages: {e}", exc_info=True)
+                        logger.error(f"Failed to save assistant with tool_calls: {e}", exc_info=True)
 
-
-                    # ⭐ WebSocket 实时接收扫描进度 ⭐
-                    if tool_calls_data and any(tc.get("function",{}).get("name")=="start_scan" for tc in tool_calls_data):
+                    # 2. 为每个 tool call 吐出 suggestion 事件
+                    for tc in tool_calls_data:
+                        tc_name = tc["function"]["name"]
                         try:
-                            task_id = json.loads(tc_result).get("task_id", "")
-                            if task_id:
-                                yield "data: {\"token\": \"扫描已启动，任务ID: " + task_id[:12] + "...\\n完成后将自动分析并推送结果。\\n\", \"done\": false}\n\n"
-                                # 记录 conversation_id 到 scan_tasks
-                                try:
-                                    from app.database import AsyncSessionLocal as _CSave
-                                    from sqlalchemy import text as _ctext
-                                    async with _CSave() as _csess:
-                                        await _csess.execute(_ctext(
-                                            "UPDATE scan_tasks SET conversation_id=:conv WHERE id=:id"
-                                        ), {"conv": conv_id, "id": task_id})
-                                        await _csess.commit()
-                                except Exception:
-                                    pass
-                        except Exception:
-                            pass
-                    # ══ 第二次 LLM 调用（带 tools）══
-                    tcd2_accum = []
-                    # 让 LLM 用工具查看进度、分析结果
-                    full_content = ""
-                    async for chunk_dict2 in llm_adapter.chat_stream(messages=messages, tools=TOOLS):
-                        choices2 = chunk_dict2.get("choices", [])
-                        if not choices2:
-                            continue
-                        delta2 = choices2[0].get("delta", {})
-                        finish2 = choices2[0].get("finish_reason")
-                        content2 = delta2.get("content", "")
-                        if content2:
-                            full_content += content2
-                            yield f"data: {json.dumps({'token': content2, 'done': False})}\n\n"
+                            tc_args = json.loads(tc["function"]["arguments"])
+                        except:
+                            tc_args = {}
+                        yield f"data: {json.dumps({'type': 'suggestion', 'tool': tc_name, 'params': tc_args, 'tool_call_id': tc.get('id', '')})}\n\n"
 
-                        if delta2.get("tool_calls"):
-                            for tc2 in delta2["tool_calls"]:
-                                idx = tc2.get("index", 0)
-                                if idx < len(tcd2_accum):
-                                    exist = tcd2_accum[idx]
-                                    if tc2.get("id"): exist["id"] = tc2["id"]
-                                    fn = tc2.get("function", {})
-                                    if fn.get("name"): exist["function"]["name"] = fn["name"]
-                                    if fn.get("arguments"): exist["function"]["arguments"] += fn["arguments"]
-                                else:
-                                    tcd2_accum.append({
-                                        "id": tc2.get("id", ""),
-                                        "type": "function",
-                                        "function": {
-                                            "name": tc2.get("function", {}).get("name", ""),
-                                            "arguments": tc2.get("function", {}).get("arguments", ""),
-                                        }
-                                    })
+                    # 3. 存储 pending，等用户下一次消息确认
+                    _pending_tool_calls[conv_id] = tool_calls_data
 
-                        if finish2 == "tool_calls" and tcd2_accum:
-                            messages.append({"role": "assistant", "content": full_content or " ", "tool_calls": tcd2_accum})
-                            _a2_id = str(uuid.uuid4())
-                            _t2_acc = []
-                            for tc2 in tcd2_accum:
-                                tc_name2 = tc2["function"]["name"]
-                                yield f"data: {json.dumps({'type': 'tool_call', 'name': tc_name2, 'arguments': tc2['function']['arguments']})}\n\n"
-                                tc_r2 = await execute_tool_call({
-                                    "id": tc2["id"],
-                                    "function": {"name": tc_name2, "arguments": tc2["function"]["arguments"]}
-                                })
-                                yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name2, 'result': json.loads(tc_r2) if isinstance(tc_r2, str) else tc_r2})}\n\n"
-                                messages.append({"role": "tool", "tool_call_id": tc2["id"], "content": tc_r2})
-                                _t2_acc.append({"id": tc2["id"], "content": tc_r2})
-                            # save second round
-                            try:
-                                async with AsyncSessionLocal() as _s:
-                                    _s.add(Message(id=_a2_id, conversation_id=conv_id,
-                                        role="assistant", content=full_content or _tool_summary(tcd2_accum), tool_calls=tcd2_accum))
-                                    for _rt in _t2_acc:
-                                        _s.add(Message(id=str(uuid.uuid4()), conversation_id=conv_id,
-                                            role="tool", content=_rt["content"], tool_call_id=_rt["id"]))
-                                    await _s.commit()
-                            except: pass
-                            # ══ 决策循环：基于扫描结果智能决策 ══
-                            try:
-                                from app.services.decision_integration import DecisionOrchestrator
-
-                                _vulns = []
-                                for _m in messages[-15:]:
-                                    if _m.get("role") == "tool":
-                                        _c = _m.get("content", "")
-                                        try:
-                                            _d = json.loads(_c) if isinstance(_c, str) else _c
-                                            if isinstance(_d, list):
-                                                _vulns.extend(_d)
-                                            elif isinstance(_d, dict):
-                                                for _k in ("vulnerabilities", "results", "findings"):
-                                                    _v = _d.get(_k, [])
-                                                    if isinstance(_v, list) and len(_v) > 0:
-                                                        _vulns.extend(_v)
-                                                        break
-                                        except:
-                                            pass
-
-                                if _vulns:
-                                    _vulns = _vulns[:20]
-                                    yield f"data: {{'token': '\\n🧠 **%d 个发现，启动智能决策引擎...**\\n', 'done': False}}\\\n\\n" % len(_vulns)
-
-                                    async def _dl_llm(usr, sys):
-                                        _m = [{"role": "system", "content": sys}, {"role": "user", "content": usr}]
-                                        _t = ""
-                                        async for _ch in llm_adapter.chat_stream(messages=_m):
-                                            for _c2 in _ch.get("choices", []):
-                                                _d2 = _c2.get("delta", {})
-                                                if _d2.get("content"):
-                                                    _t += _d2["content"]
-                                        return _t
-
-                                    async def _dl_rag(q):
-                                        import httpx
-                                        try:
-                                            _r = await httpx.AsyncClient(timeout=15).post(
-                                                "http://yunjing-backend:8000/api/engine/experience/search",
-                                                json={"query": q, "top_k": 3},
-                                            )
-                                            if _r.status_code == 200:
-                                                return _r.json().get("results", [])
-                                        except:
-                                            pass
-                                        return []
-
-                                    _orch = DecisionOrchestrator(
-                                        execute_tool=execute_tool_call,
-                                        llm_chat_func=_dl_llm,
-                                        rag_search=_dl_rag,
-                                        max_loop_steps=3,
-                                        yield_callback=None,
-                                    )
-
-                                    try:
-                                        _r = await _orch.run(target=target, initial_vulns=_vulns, task_id="")
-                                        _acts = _r.get("actions_taken", [])
-                                        if _acts:
-                                            _report_lines = ["\n🎯 **智能决策分析 — 可深入方向:**"]
-                                            for _a in _acts[:3]:
-                                                _report_lines.append(f"  - {'✅' if _a['success'] else '✨'} {_a['action']} → {_a['reasoning'][:100]}")
-                                            _report = "\n".join(_report_lines)
-                                            messages.append({"role": "tool", "tool_call_id": "decis", "content": _report})
-                                            yield f"data: {{'token': '%s\\n', 'done': False}}\\n\\n" % _report
-                                    except Exception as _e2:
-                                        yield f"data: {{'token': '! 决策: %s\\n', 'done': False}}\\n\\n" % str(_e2)
-                            except Exception as _e1:
-                                pass
-                            # ══ 决策循环结束 ══
-
-                            # Third call: analyze tool results
-                            full_content = ""
-                            async for chunk_dict3 in llm_adapter.chat_stream(messages=messages):
-                                choices3 = chunk_dict3.get("choices", [])
-                                if not choices3:
-                                    continue
-                                delta3 = choices3[0].get("delta", {})
-                                c3 = delta3.get("content", "")
-                                if c3:
-                                    full_content += c3
-                                    yield f"data: {json.dumps({'token': c3, 'done': False})}\n\n"
-                                if choices3[0].get("finish_reason") == "stop":
-                                    break
-                            break
-                        if finish2 == "stop":
-                            break
+                    # 4. 结束当前 SSE 流
+                    yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+                    return
 
                 if finish == "stop":
                     break
