@@ -1,280 +1,149 @@
-# 云镜 2.0 实施计划
+# 云镜 2.0 — 剩余任务规划
 
-## 概述
+## 完成情况更新
 
-将云镜从"全自动扫描器"升级为"对话制智能渗透系统"——LLM 做参谋、用户做决策、Kali 600+ 武器库做执行层。
+### ✅ 已完成的
+- Phase 1 + Phase 2 全部 5 个任务
+- Phase 3: Monitor Agent（任务 6）
+- 前端精简 + 页面清理
+- gophish 等无用容器清理
 
----
-
-## 架构决策
-
-| 决策 | 方案 | 理由 |
-|:----|:-----|:------|
-| 工作模式 | 4 种 Expert/Verify/Targeted/Assault | 覆盖全部场景，前端可切换 |
-| 专家形象 | 4 位命名专家，前端显示角色头像 + 名字 | 身份清晰，用户知道在跟谁对话 |
-| 前端切换 | 对话栏上部显示当前专家，可下拉切换 | 用户主动选择模式，不依赖 LLM 自动判断 |
-| 工具库发现 | **Qdrant 向量索引 + 语义搜索** | 600+ 工具全覆盖，无需维护清单 |
-| 武器库调用 | docker exec 到 Kali 容器 | 复用现有容器化架构，改一个函数 |
-| 对话制决策 | LLM 建议 → 用户确认 → 执行 | 核心模式：人不点头不动手 |
-| 底座三件套 | 知识库 + 经验库 + 武器库 | **不纯靠 LLM 记忆**，减少幻觉，累计经验 |
-| 灵魂文件 | 4 个 system prompt（每人一个 .md） | 编辑 prompt 不修改代码，灵活迭代 |
-
-## 四位专家
-
-| 专家 | 名字 | 代号 | 定位 | 默认 |
-|:----|:----|:----|:------|:----:|
-| 安全顾问 | **云鉴** | Expert | 安全知识问答、漏洞咨询 | ✅ |
-| 漏洞验证师 | **云证** | Verify | 轻量无损验证漏洞真实性 | |
-| 渗透测试师 | **云探** | Scanner | 定向扫描、深度排查 | |
-| 红队指挥官 | **云破** | Assault | 全面渗透、多目标协同 | |
-
-（名字你要是有更好的想法可以改）
+### ❌ 未完成的
+| # | 任务 | 说明 |
+|:-:|:-----|:------|
+| 7 | 安全约束层 | Expert/Verify/Scanner/Assault 四种模式的操作边界 |
+| 8 | 经验库 + RAG 接入对话 | Qdrant 检索注入 LLM 上下文 |
+| 9 | 系统设置完善 | 系统配置 + 个人中心 + 大模型配置 |
 
 ---
 
-## 任务清单
+## 任务 7：安全约束层
 
-### Phase 1：基础设施
+**后端改动** — `backend/app/core/config.py`
+- 定义一个安全策略字典，约束每种模式能调什么工具
 
-#### 任务 1：Kali 工具库向量索引
-**描述：** 在 Kali 容器里跑一遍索引脚本，把所有工具的描述/类别/用法说明抽出来，写入 Qdrant 向量库。之后 LLM 通过语义搜索发现可用工具。
-
-**验收标准：**
-- [ ] Kali 容器 600+ 工具的元数据抽取脚本编写完成
-- [ ] 元数据写入 Qdrant `kali_tools` collection
-- [ ] `search_kali_tools("SQL注入")` 返回 sqlmap、jSQL 等 5+ 个相关工具
-- [ ] `search_kali_tools("端口扫描")` 返回 nmap、masscan、unicornscan 等
-
-**涉及文件：**
-- `worker/app/tasks/scan_helpers.py`（新增 `search_kali_tools()`）
-- `backend/app/engine/vector_store.py`（新增 collection 管理）
-
-**预估范围：** M（3-5 文件）
-
----
-
-#### 任务 2：_exec_tool() 指向 Kali 容器
-**描述：** 把 `_exec_tool()` 和 `_check_target_alive()` 里的容器名从 `yunjing-sbx` 改成 `yunjing-kali`。
-
-**验收标准：**
-- [ ] scan_helpers.py 里所有 docker exec 命令指向 `yunjing-kali`
-- [ ] worker 连接 Kali 容器正常
-- [ ] 执行 `nmap`、`sqlmap` 等命令返回正常结果
-
-**涉及文件：**
-- `worker/app/tasks/scan_helpers.py`
-
-**预估范围：** XS（1 文件）
-
----
-
-#### 任务 3：写 4 个 system prompt
-**描述：** 创建 4 个模式各自的角色定义文件 system prompt，放在统一目录下。
-
-**验收标准：**
-- [ ] `backend/app/core/prompts/expert.md`
-- [ ] `backend/app/core/prompts/verify.md`
-- [ ] `backend/app/core/prompts/scanner.md`
-- [ ] `backend/app/core/prompts/assault.md`
-- [ ] 每个文件包含：角色定位 + 工作原则 + 约束边界 + 工具使用方式
-
-**涉及文件：**
-- `backend/app/core/prompts/*.md`（新建目录）
-
-**预估范围：** S（1-2 文件）
-
----
-
-### 检查点 1：基础设施
-- [ ] Kali 工具索引正常工作
-- [ ] Worker 可调用 Kali 武器库
-- [ ] 4 个 system prompt 内容完整
-
----
-
-### Phase 2：对话决策流
-
-#### 任务 4：chat_stream.py 改为对话决策模式
-**描述：** 当前 SSE 流是 LLM 一次生成完所有内容后结束。改为：
-1. LLM 生成建议 + 工具调用 → yield 到前端（显示"建议：…… 要执行吗？"）
-2. 挂起，等待用户回复
-3. 用户回复到达 → LLM 判断是确认/否决/修改参数
-4. 确认 → 执行工具 → 继续出下一步建议
-5. 否决 → LLM 调整方案
-
-**验收标准：**
-- [ ] LLM 发出工具调用建议时，前端显示待用户确认
-- [ ] 用户回复"干"/"好"→ 工具执行，结果回到对话
-- [ ] 用户回复"不"→ LLM 出替代方案
-- [ ] 用户能修改参数（如"扫 22 端口就行"）
-- [ ] 工具执行结果包含在下一步的 LLM 上下文中
-
-**涉及文件：**
-- `backend/app/api/chat_stream.py`
-- `frontend/src/pages/ChatPage.tsx`
-
-**预估范围：** L（5-8 文件）
-
----
-
-#### 任务 5：前端确认 UI
-**描述：** 在对话气泡中区分"LLM 建议"和"需用户确认"两种状态。建议消息底部显示 [确认] [否决] [修改] 三个按钮。
-
-**验收标准：**
-- [ ] LLM 建议头部显示 🤖 图标
-- [ ] 建议消息底部有确认/否决/修改按钮
-- [ ] 用户确认后按钮变为"已确认 ✓"
-- [ ] 执行结果显示在建议消息下方
-- [ ] 适配移动端
-
-**涉及文件：**
-- `frontend/src/pages/ChatPage.tsx`
-- `frontend/src/components/ChatMessage.tsx`（可能需新建）
-
-**预估范围：** M（3-5 文件）
-
----
-
-### 检查点 2：对话决策流
-- [ ] 完整对话决策流跑通：建议 → 用户确认 → 执行 → 结果
-- [ ] 前端确认 UI 正常
-- [ ] 至少一个工具（nmap）的完整链路通过测试
-
----
-
-### Phase 3：对话制决策 + 静默模式
-
-#### 任务 6：扫描完成自动推送（Monitor Agent）
-**描述：** Worker 启动一个后台守护线程 `monitor_loop()`，每隔 30 秒扫描 DB 中 `status=COMPLETED` 且未推送分析的 task。发现后自动调分析 + 写入对话消息。
-
-**设计：**
 ```python
-# scan_tasks 表新增字段：
-#   conversation_id VARCHAR(64)   ← 创建任务时由 chat_stream 写入
-#   notified BOOLEAN DEFAULT false ← 分析是否已推送
-
-# worker/app/tasks/scan_monitor.py
-def monitor_loop():
-    while True:
-        tasks = db.query.filter(COMPLETED, not notified)
-        for t in tasks:
-            # 1. 调 /api/analyze
-            # 2. INSERT INTO messages (conversation_id, role='assistant', content=分析结果)
-            # 3. t.notified = True → db.commit
-        time.sleep(30)
+MODE_CONSTRAINTS = {
+    "expert": {"allow_tools": False, "prompt": "expert.md"},
+    "verify": {"allow_tools": True, "block_payload": True, "confirm_required": False, "prompt": "verify.md"},
+    "scanner": {"allow_tools": True, "block_payload": True, "confirm_required": True, "prompt": "scanner.md"},
+    "assault": {"allow_tools": True, "block_payload": False, "confirm_required": True, "prompt": "assault.md"},
+}
 ```
 
-**验收标准：**
-- [ ] Worker 启动后 `monitor_loop()` 自动运行
-- [ ] 扫描完成的 task 在 30 秒内自动触发分析
-- [ ] 分析结果写入对应 conversation 的 messages 表
-- [ ] 用户打开对话页面能看到分析报告
-- [ ] 不重复推送（notified 标记正确）
-
-**涉及文件：**
-- `worker/app/tasks/scan_monitor.py`（新建）
-- `backend/app/models/task.py`（加 conversation_id + notified 字段）
-- `backend/app/api/chat_stream.py`（创建任务时写入 conversation_id）
-
-**预估范围：** M（3-5 文件）
-**描述：** LLM 根据用户输入的意图自动判断当前工作模式，加载对应的 system prompt + 工具集。
+**前端联动**
+- 当前 chat_stream.py 已按 mode 加载不同的 system prompt
+- 安全约束通过 prompt 内容约束 LLM 行为（Expert 模式提示词里写了"你不动任何目标系统"）
+- 需要确认 chat_stream.py 中是否根据 mode 过滤了工具调用
 
 **验收标准：**
-- [ ] 用户说"XX 漏洞是什么"→ 自动切 Expert 模式
-- [ ] 用户说"扫一下 XXX"→ 自动切 Scanner 模式
-- [ ] 用户说"全面渗透 XXX"→ 自动切 Assault 模式
-- [ ] 模式切换加载对应的 system prompt
-- [ ] 模式切换加载对应的工具集（Expert 模式不加载 nmap 等攻击工具）
-
-**涉及文件：**
-- `backend/app/core/prompts/*.md`
-- `backend/app/api/chat_stream.py`
-
-**预估范围：** M（3-5 文件）
+- [ ] Expert 模式下 LLM 不会调用任何扫描工具
+- [ ] Verify 模式只允许轻量探测
+- [ ] Scanner 模式高危操作需要确认
+- [ ] Assault 模式全量放开
 
 ---
 
-#### 任务 7：安全约束层
-**描述：** 每种模式定义不同的操作边界：
-- Expert：不动任何目标
-- Verify：只读探测，不写文件、不弹 shell
-- Scanner：全量扫描，但利用类操作需用户确认
-- Assault：全量，但破坏性操作需用户二次确认
+## 任务 8：经验库 + RAG
 
-**验收标准：**
-- [ ] Expert 模式下任何工具调用被拒绝
-- [ ] Verify 模式下 payload 类工具被过滤
-- [ ] Scanner 模式下高危操作（写入文件、反弹 shell）需用户确认
-- [ ] Assault 模式下写入/反弹需二次确认
-- [ ] 所有拒绝理由明确返回给用户
+**后端改动** — `backend/app/api/chat_stream.py`
+- 每次 LLM 调用前，从 Qdrant 检索相关经验/知识
+- 把检索结果注入 system prompt 或 user message 的上下文
 
-**涉及文件：**
-- `backend/app/core/config.py`（新增安全策略）
-- `backend/app/api/chat_stream.py`
-
-**预估范围：** M（3-5 文件）
-
----
-
-#### 任务 8：经验库 + RAG 接入对话
-**描述：** 每次 LLM 回复前，检索 Qdrant 经验库 + 知识库，把相关历史经验和技术文档注入上下文。
-
-**验收标准：**
-- [ ] Qdrant 经验库向量索引正常工作
-- [ ] LLM 生成回复前自动检索相关知识
-- [ ] 检索结果可见（如"基于历史经验：x86_64 目标 SQL 注入成功率 87%"）
-- [ ] 检索不影响对话响应速度（< 2s）
-
-**涉及文件：**
-- `backend/app/api/chat_stream.py`
-- `backend/app/engine/vector_store.py`
-
-**预估范围：** M（3-5 文件）
-
----
-
-### 检查点 3：完整链路
-- [ ] 四种模式切换正常
-- [ ] 安全约束层正常工作
-- [ ] 经验库 + RAG 注入生效
-- [ ] 端到端验收：发起扫描 → 决策 → 执行 → 报告
-
----
-
-## 实施依赖图
-
-```
-任务 1（Kali 索引）←── 任务 2（指向 Kali）←── 任务 4（对话决策）
-                                                      │
-任务 3（system prompt）────────────┘                │
-                                                      ↓
-                                              任务 5（前端 UI）
-                                                      │
-                                                      ↓
-                                        任务 6（模式切换）+ 任务 7（安全层）+ 任务 8（RAG）
+```python
+# 在 chat_stream() 中，构建 messages 前：
+from app.engine.vector_store import RAGEngine
+rag = RAGEngine()
+experience = rag.search("经验", user_message, limit=3)
+knowledge = rag.search("知识库", user_message, limit=3)
+if experience:
+    context_extra = "基于历史经验：\n" + "\n".join(e["text"] for e in experience)
+if knowledge:
+    context_extra += "\n相关知识：\n" + "\n".join(k["text"] for k in knowledge)
 ```
 
----
+**注意：** Qdrant 容器当前不可用（vector_store.py 有 Warning），需要先确认 RAGEngine 是否能正常工作。
 
-## 风险与应对
-
-| 风险 | 影响 | 应对 |
-|:-----|:-----|:-----|
-| Kali 工具元数据不完整 | 高 | 先用 dpkg + apt-cache 做主索引，不完整的后续补充 |
-| 对话决策模式打破现有流式逻辑 | 中 | 先保持代码分支，现有全自动模式作为 fallback |
-| Qdrant 性能瓶颈 | 低 | 600 条向量/次检索 < 100ms，现有索引机制足够 |
-| 用户确认 UI 开发工作量大 | 中 | 先用文本按钮（Y/n）实现，UI 美化后置 |
+**验收标准：**
+- [ ] Qdrant 经验库可检索
+- [ ] LLM 回复前自动检索相关知识
+- [ ] 检索结果注入上下文
+- [ ] 检索不影响响应速度
 
 ---
 
-## 开放问题（已确定）
+## 任务 9：系统设置完善
 
-| 问题 | 决策 | 理由 |
-|:-----|:-----|:------|
-| 工具描述语言？ | **英文**，不翻译 | LLM 理解英文没问题，省去翻译损耗 |
-| man page 抽取策略？ | `whatis` + `--help` + `apt-cache` | 不跑 `man`（600+ 个太慢），取包描述 + 命令名 + help 摘要 + 用法示例 |
-| 用户确认超时？ | **不设超时** | 就像两人对话——LLM 出建议，用户啥时候看到啥时候回，上下文保留在对话历史里 |
+### 后端 API
+
+**1. 修改密码**
+`backend/app/api/users.py` 新增：
+```python
+@router.put("/me/password")
+async def change_password(data: dict, user: User = Depends(get_current_user)):
+    """修改当前用户密码：需要旧密码 + 新密码 × 2"""
+    old_pw = data.get("old_password")
+    new_pw = data.get("new_password")
+    confirm_pw = data.get("confirm_password")
+    # 验证旧密码
+    # 验证新密码一致性
+    # 验证密码复杂度
+    # 更新密码
+```
+
+**2. 大模型配置**
+`backend/app/api/settings_api.py` 新增：
+```python
+@router.get("/llm-config")
+async def get_llm_config():
+    """获取当前 LLM 配置"""
+
+@router.put("/llm-config")
+async def update_llm_config(data: dict):
+    """更新 LLM 配置：provider、model、base_url、api_key"""
+```
+
+在 `backend/app/models/settings.py` 或直接在 `.env` 中管理 LLM 配置。
+
+### 前端页面
+
+`frontend/src/pages/SettingsPage.tsx` 改为 3 个 Tab：
+
+**Tab 1：系统设置**
+- 系统名称（修改后更新页面标题）
+- 登录超时时间（分钟）
+- 密码复杂度规则（大小写+数字+特殊字符）
+
+**Tab 2：个人中心**
+- 当前用户信息展示（用户名、角色、邮箱等）
+- 修改密码表单：
+  - 旧密码（input type=password）
+  - 新密码（input type=password）
+  - 确认新密码（input type=password）
+  - 保存按钮
+
+**Tab 3：大模型配置**
+- 提供商选择：本地 / DeepSeek / 自定义 OpenAI
+- 自定义时输入：base_url、api_key、model name
+- 测试连接按钮
+- 保存按钮
+
+### 验收标准：
+- [ ] 修改系统名称 → 页面标题更新
+- [ ] 修改密码 → 旧密码验证、新密码一致性检查
+- [ ] 大模型配置 → 可选本地/云端/自定义
+- [ ] 所有数据真实写入后端 API，无 mock 数据
 
 ---
 
-你审一下这个方案，有要调的告诉我，没问题我按 Phase 1 → 2 → 3 的顺序开干。
+## 执行顺序
+
+```
+T7 安全约束层（0.5天） ← 可以先干，改动小
+    ↓
+T9 系统设置（1天）    ← 前后端一起
+    ↓
+T8 经验库+RAG（0.5天）← 需要 Qdrant 先确认可用
+```
+
+你审一下这个规划，没问题我就按顺序全部开工。

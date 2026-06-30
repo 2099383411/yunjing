@@ -37,6 +37,23 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
     if mode not in ["expert", "verify", "scanner", "assault"]:
         mode = "expert"
 
+    # ── T7 安全约束层 ──
+    from app.core.config import MODE_CONSTRAINTS
+    constraints = MODE_CONSTRAINTS.get(mode, {})
+    PAYLOAD_TOOL_PATTERNS = ["_action_exploit", "_action_post_exploit", "exploit", "post_exploit"]
+
+    def _is_payload_tool(name: str) -> bool:
+        for p in PAYLOAD_TOOL_PATTERNS:
+            if p in name:
+                return True
+        return False
+
+    def _filter_tool_calls(tcs: list[dict]) -> list[dict]:
+        """根据 block_payload 约束过滤工具调用"""
+        if not constraints.get("block_payload", False):
+            return tcs
+        return [tc for tc in tcs if not _is_payload_tool(tc.get("function", {}).get("name", ""))]
+
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
 
@@ -238,6 +255,23 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
 
                 if finish == "tool_calls" and tool_calls_data:
                     done_reason = "tool_calls"
+
+                    # ── T7 安全约束层：allow_tools 检查 ──
+                    if not constraints.get("allow_tools", True):
+                        expert_msg = "当前是专家模式，不支持工具调用"
+                        yield f"data: {json.dumps({'token': expert_msg, 'done': False})}\\n\\n"
+                        yield f"data: {json.dumps({'token': '', 'done': True})}\\n\\n"
+                        return
+
+                    # ── T7 安全约束层：block_payload 过滤 ──
+                    tool_calls_data = _filter_tool_calls(tool_calls_data)
+                    if not tool_calls_data:
+                        # 所有工具被过滤掉，返回提示
+                        blocked_msg = "当前模式禁止执行 payload 类操作"
+                        yield f"data: {json.dumps({'token': blocked_msg, 'done': False})}\\n\\n"
+                        yield f"data: {json.dumps({'token': '', 'done': True})}\\n\\n"
+                        return
+
                     # ── 对话决策模式：建议→等待用户确认 ──
                     # 1. 保存 assistant 消息（含 tool_calls）到 messages 和 DB
                     asst_content = (full_content or "") or _tool_summary(tool_calls_data)
@@ -325,6 +359,18 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
 
                 if choice["finish_reason"] == "tool_calls" and choice.get("message", {}).get("tool_calls"):
                     tcs = choice["message"]["tool_calls"]
+
+                    # ── T7 安全约束层：allow_tools 检查 ──
+                    if not constraints.get("allow_tools", True):
+                        final_content = "当前是专家模式，不支持工具调用"
+                        break
+
+                    # ── T7 安全约束层：block_payload 过滤 ──
+                    tcs = _filter_tool_calls(tcs)
+                    if not tcs:
+                        final_content = "当前模式禁止执行 payload 类操作"
+                        break
+
                     messages_for_llm.append({
                         "role": "assistant", "content": choice["message"].get("content", "") or " ",
                         "tool_calls": tcs

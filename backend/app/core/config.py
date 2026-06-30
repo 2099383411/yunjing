@@ -39,3 +39,29 @@ class TargetDefaults:
 
 
 targets = TargetDefaults()
+
+# ── T7 安全约束层 ──
+MODE_CONSTRAINTS = {
+    "expert": {
+        "allow_tools": False,      # 专家模式不允许任何工具调用
+        "prompt": "expert.md"
+    },
+    "verify": {
+        "allow_tools": True,
+        "block_payload": True,     # 禁止 payload/写文件/弹 shell
+        "confirm_required": False,
+        "prompt": "verify.md"
+    },
+    "scanner": {
+        "allow_tools": True,
+        "block_payload": True,
+        "confirm_required": True,  # 高危操作需要确认
+        "prompt": "scanner.md"
+    },
+    "assault": {
+        "allow_tools": True,
+        "block_payload": False,    # 全量放开
+        "confirm_required": True,
+        "prompt": "assault.md"
+    },
+}
