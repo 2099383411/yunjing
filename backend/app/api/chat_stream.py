@@ -1,6 +1,7 @@
 """SSE 流式对话处理器"""
 import logging
 import json
+import re
 import uuid
 from datetime import datetime
 from fastapi import HTTPException
@@ -33,6 +34,8 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
     stream = data.get("stream", True)
     history = data.get("history", None)
     mode = data.get("mode", "expert")
+    if mode not in ["expert", "verify", "scanner", "assault"]:
+        mode = "expert"
 
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
@@ -138,8 +141,8 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
             pending_tool_calls = _pending_tool_calls.pop(conv_id, None)
             if pending_tool_calls:
                 user_msg_lower = text.lower().strip()
-                is_confirm = any(k in user_msg_lower for k in CONFIRM_KEYWORDS)
-                is_reject = any(k in user_msg_lower for k in REJECT_KEYWORDS)
+                is_confirm = any(re.search(rf'\b{re.escape(k)}\b', user_msg_lower) for k in CONFIRM_KEYWORDS)
+                is_reject = any(re.search(rf'\b{re.escape(k)}\b', user_msg_lower) for k in REJECT_KEYWORDS)
 
                 if is_confirm:
                     # 用户确认 → 执行 pending tools

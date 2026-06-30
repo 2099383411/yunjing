@@ -5,7 +5,7 @@ import json, re, asyncio, subprocess, shlex
 from typing import Optional
 from datetime import datetime
 
-SANDBOX_CONTAINER = "yunjing-sbx"
+SANDBOX_CONTAINER = "yunjing-kali"
 OUTPUT_DIR = "/data/exploit-output"
 
 
