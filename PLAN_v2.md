@@ -142,9 +142,41 @@
 
 ---
 
-### Phase 3：模式切换与经验库
+### Phase 3：对话制决策 + 静默模式
 
-#### 任务 6：模式自动切换
+#### 任务 6：扫描完成自动推送（Monitor Agent）
+**描述：** Worker 启动一个后台守护线程 `monitor_loop()`，每隔 30 秒扫描 DB 中 `status=COMPLETED` 且未推送分析的 task。发现后自动调分析 + 写入对话消息。
+
+**设计：**
+```python
+# scan_tasks 表新增字段：
+#   conversation_id VARCHAR(64)   ← 创建任务时由 chat_stream 写入
+#   notified BOOLEAN DEFAULT false ← 分析是否已推送
+
+# worker/app/tasks/scan_monitor.py
+def monitor_loop():
+    while True:
+        tasks = db.query.filter(COMPLETED, not notified)
+        for t in tasks:
+            # 1. 调 /api/analyze
+            # 2. INSERT INTO messages (conversation_id, role='assistant', content=分析结果)
+            # 3. t.notified = True → db.commit
+        time.sleep(30)
+```
+
+**验收标准：**
+- [ ] Worker 启动后 `monitor_loop()` 自动运行
+- [ ] 扫描完成的 task 在 30 秒内自动触发分析
+- [ ] 分析结果写入对应 conversation 的 messages 表
+- [ ] 用户打开对话页面能看到分析报告
+- [ ] 不重复推送（notified 标记正确）
+
+**涉及文件：**
+- `worker/app/tasks/scan_monitor.py`（新建）
+- `backend/app/models/task.py`（加 conversation_id + notified 字段）
+- `backend/app/api/chat_stream.py`（创建任务时写入 conversation_id）
+
+**预估范围：** M（3-5 文件）
 **描述：** LLM 根据用户输入的意图自动判断当前工作模式，加载对应的 system prompt + 工具集。
 
 **验收标准：**
