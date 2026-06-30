@@ -339,14 +339,10 @@ services:
 
 
   # ─── GoPhish 社工钓鱼平台 ────────────────────────────
-  gophish:
-    image: gophish/gophish:latest
-    container_name: yunjing-gophish
     ports:
       - "3333"
       - "8083"
     volumes:
-      - ./data/gophish:/opt/gophish/data
     networks:
       - yunjing-net
     restart: unless-stopped
