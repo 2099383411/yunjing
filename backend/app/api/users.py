@@ -11,6 +11,29 @@ from app.api.deps import get_current_user, require_admin
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 
+# ── 当前用户自助服务（无需 admin） ──
+self_router = APIRouter()
+
+
+@self_router.put("/me/password")
+async def change_my_password(data: dict, user: User = Depends(get_current_user)):
+    """当前用户修改自己的密码"""
+    old_pw = data.get("old_password", "")
+    new_pw = data.get("new_password", "")
+    confirm_pw = data.get("confirm_password", "")
+
+    async with AsyncSessionLocal() as db:
+        db_user = await db.get(User, user.id)
+        if not db_user or not bcrypt.verify(old_pw, db_user.password_hash):
+            return {"status": "error", "message": "旧密码不正确"}
+        if new_pw != confirm_pw:
+            return {"status": "error", "message": "两次新密码不一致"}
+        if len(new_pw) < 8:
+            return {"status": "error", "message": "密码长度至少8位"}
+        db_user.password_hash = bcrypt.hash(new_pw)
+        await db.commit()
+    return {"status": "ok", "message": "密码已修改"}
+
 
 class CreateUserReq(BaseModel):
     username: str
