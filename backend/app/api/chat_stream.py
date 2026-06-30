@@ -134,6 +134,61 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
             tool_calls_data = None
             done_reason = None
 
+            # ── 对话决策模式：检查有无 pending tool call 等待用户确认 ──
+            pending_tool_calls = _pending_tool_calls.pop(conv_id, None)
+            if pending_tool_calls:
+                user_msg_lower = text.lower().strip()
+                is_confirm = any(k in user_msg_lower for k in CONFIRM_KEYWORDS)
+                is_reject = any(k in user_msg_lower for k in REJECT_KEYWORDS)
+
+                if is_confirm:
+                    # 用户确认 → 执行 pending tools
+                    results = []
+                    for tc in pending_tool_calls:
+                        tc_name = tc["function"]["name"]
+                        yield f"data: {json.dumps({'type': 'tool_call', 'name': tc_name, 'arguments': tc.get('function', {}).get('arguments', '{}')})}\n\n"
+                        tc_result = await execute_tool_call(tc)
+                        yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name, 'result': json.loads(tc_result) if isinstance(tc_result, str) else tc_result})}\n\n"
+                        results.append({"tool_call_id": tc["id"], "content": tc_result})
+
+                    # 移除用户确认消息（避免干扰 LLM 上下文中的消息顺序）
+                    for i in range(len(messages) - 1, -1, -1):
+                        if messages[i].get("role") == "user":
+                            messages.pop(i)
+                            break
+
+                    # 添加 tool 结果到 messages
+                    for r in results:
+                        messages.append({"role": "tool", "tool_call_id": r["tool_call_id"], "content": r["content"]})
+
+                    # 保存 tool 结果到 DB
+                    try:
+                        async with AsyncSessionLocal() as _save_sess:
+                            for r in results:
+                                _save_sess.add(Message(
+                                    id=str(uuid.uuid4()), conversation_id=conv_id,
+                                    role="tool", content=r["content"], tool_call_id=r["tool_call_id"],
+                                ))
+                            await _save_sess.commit()
+                    except Exception as e:
+                        logger.error(f"Failed to save tool results: {e}", exc_info=True)
+
+                elif is_reject:
+                    # 用户否决 → 添加拒绝说明到 messages
+                    for i in range(len(messages) - 1, -1, -1):
+                        if messages[i].get("role") == "user":
+                            messages.pop(i)
+                            break
+                    messages.append({"role": "user", "content": "用户否决了建议，请给出替代方案"})
+
+                else:
+                    # 用户修改或其它 → 让 LLM 按修改后的意图重新处理
+                    for i in range(len(messages) - 1, -1, -1):
+                        if messages[i].get("role") == "user":
+                            messages.pop(i)
+                            break
+                    messages.append({"role": "user", "content": f"用户修改了参数: {text}"})
+
             # Use streaming from LLM
             async for chunk_dict in llm_adapter.chat_stream(messages=messages, tools=TOOLS):
                 choices = chunk_dict.get("choices", [])
