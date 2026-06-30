@@ -80,6 +80,28 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
             except Exception as e:
                 logger.warning(f"Failed to load mode prompt '{mode}.md': {e}")
 
+        # ── RAG 上下文注入 ──
+        try:
+            from app.engine.vector_store import RAGEngine
+            _rag = RAGEngine()
+            _user_msg = data.get("message", "")
+            if _user_msg.strip():
+                _exps = _rag.search(_user_msg, top_k=3, collections=["experience"])
+                _knows = _rag.search(_user_msg, top_k=2, collections=["knowledge"])
+                _parts = []
+                for _src in [("【历史经验】", _exps), ("【相关知识】", _knows)]:
+                    if _src[1]:
+                        _parts.append(_src[0])
+                        for _e in _src[1]:
+                            _p = _e.get("payload", {})
+                            _txt = _p.get("text", _p.get("content", "")) if isinstance(_p, dict) else str(_p)
+                            if _txt:
+                                _parts.append(f"- {_txt[:120]}")
+                if _parts:
+                    system_content += "\n\n参考信息（基于历史经验和知识库）：\n" + "\n".join(_parts)
+        except Exception:
+            pass
+
         messages = [{"role": "system", "content": system_content}]
 
         # ── RAG 上下文注入 ──
