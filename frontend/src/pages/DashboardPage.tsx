@@ -211,8 +211,6 @@ const QUICK_ACTIONS = [
   {key:"chat", label:"智能渗透", desc:"AI驱动渗透测试", icon:<MessageOutlined/>, color:C.primary, path:"/chat"},
   {key:"tasks", label:"扫描任务", desc:"查看所有任务", icon:<UnorderedListOutlined/>, color:C.purple, path:"/tasks"},
   {key:"reports", label:"检测报告", desc:"PDF/Word/HTML", icon:<FileTextOutlined/>, color:C.danger, path:"/reports"},
-  {key:"perception", label:"资产感知", desc:"动态资产发现", icon:<RadarChartOutlined/>, color:C.warning, path:"/perception"},
-  {key:"engine", label:"推理引擎", desc:"引擎配置管理", icon:<BugOutlined/>, color:"#0369a1", path:"/engine"},
   {key:"settings", label:"系统设置", desc:"通用配置管理", icon:<SettingOutlined/>, color:C.slate, path:"/settings"},
 ];
 
@@ -447,8 +445,7 @@ export default function DashboardPage() {
             trend={{dir:"up", text:"+3 新增"}} onClick={() => navigate("/reports")}/>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <StatCard label="已检测资产" value={stats.targets} icon={<RadarChartOutlined/>} color={C.purple}
-            trend={{dir:"up", text:"+2 本周"}} onClick={() => navigate("/perception")}/>
+          <StatCard label="已检测资产" value={stats.targets} icon={<RadarChartOutlined/>} color={C.purple} />
         </Col>
         <Col xs={24} sm={12} lg={4}>
           <StatCard label="执行中任务" value={stats.running} icon={<SyncOutlined />} color={C.warning}

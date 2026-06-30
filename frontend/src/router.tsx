@@ -44,7 +44,7 @@ function AuthRedirect() {
 }
 
 export default function Router() {
-  const checkAuth = useAuthStore((s) => s.checkAuth);
+    const checkAuth = useAuthStore((s) => s.checkAuth);
   useEffect(() => { checkAuth(); }, []);
 
   return (
@@ -59,6 +59,7 @@ export default function Router() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/*" element={<SettingsPage />} />
       </Route>
+          <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
