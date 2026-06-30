@@ -15,10 +15,6 @@ import FileTextOutlined from "@ant-design/icons/es/icons/FileTextOutlined";
 import SafetyOutlined from "@ant-design/icons/es/icons/SafetyOutlined";
 import UserOutlined from "@ant-design/icons/es/icons/UserOutlined";
 import LogoutOutlined from "@ant-design/icons/es/icons/LogoutOutlined";
-import BranchesOutlined from "@ant-design/icons/es/icons/BranchesOutlined";
-import RadarChartOutlined from "@ant-design/icons/es/icons/RadarChartOutlined";
-import ThunderboltOutlined from "@ant-design/icons/es/icons/ThunderboltOutlined";
-import ScheduleOutlined from "@ant-design/icons/es/icons/ScheduleOutlined";
 import SettingOutlined from "@ant-design/icons/es/icons/SettingOutlined";
 import BellOutlined from "@ant-design/icons/es/icons/BellOutlined";
 import MenuFoldOutlined from "@ant-design/icons/es/icons/MenuFoldOutlined";
@@ -35,30 +31,9 @@ const menuItems = [
     key: "tasks-group", icon: <UnorderedListOutlined />, label: "扫描任务",
     children: [
       { key: "/tasks", icon: <UnorderedListOutlined />, label: "任务列表" },
-      { key: "/schedules", icon: <ScheduleOutlined />, label: "调度中心" },
     ],
   },
   { key: "/reports", icon: <FileTextOutlined />, label: "检测报告" },
-  { type: "divider" as const },
-  {
-    key: "analysis-group", icon: <RadarChartOutlined />, label: "安全分析",
-    children: [
-      { key: "/perception", icon: <RadarChartOutlined />, label: "资产感知" },
-      { key: "/reasoning", icon: <BranchesOutlined />, label: "推理引擎" },
-      { key: "/attack-surface", icon: <SafetyOutlined />, label: "攻击面" },
-    ],
-  },
-  { type: "divider" as const },
-  {
-    key: "knowledge-group", icon: <UnorderedListOutlined />, label: "知识资产",
-    children: [
-      { key: "/experience", icon: <FileTextOutlined />, label: "经验知识库" },
-      { key: "/sessions", icon: <SafetyOutlined />, label: "Session管理" },
-      { key: "/review", icon: <FileTextOutlined />, label: "渗透复盘" },
-    ],
-  },
-  { key: "/phishing", icon: <ThunderboltOutlined />, label: "社工钓鱼" },
-  { type: "divider" as const },
   { key: "/settings", icon: <SettingOutlined />, label: "系统设置" },
 ];
 
@@ -92,7 +67,7 @@ export default function Layout() {
   };
 
   const selectedKey = location.pathname;
-  const openKeys = ["tasks-group", "analysis-group"];
+  const openKeys = ["tasks-group"];
 
   const handleMenuClick = (e: { key: string }) => { navigate(e.key); };
 
