@@ -1,6 +1,6 @@
 """扫描任务模型"""
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, JSON, Enum as SAEnum
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, JSON, Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase
 import enum
 
@@ -26,3 +26,5 @@ class ScanTask(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+    conversation_id = Column(String(64), nullable=True)
+    notified = Column(Boolean, default=False)

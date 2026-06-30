@@ -236,6 +236,17 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
                             task_id = json.loads(tc_result).get("task_id", "")
                             if task_id:
                                 yield "data: {\"token\": \"扫描已启动，任务ID: " + task_id[:12] + "...\\n完成后将自动分析并推送结果。\\n\", \"done\": false}\n\n"
+                                # 记录 conversation_id 到 scan_tasks
+                                try:
+                                    from app.database import AsyncSessionLocal as _CSave
+                                    from sqlalchemy import text as _ctext
+                                    async with _CSave() as _csess:
+                                        await _csess.execute(_ctext(
+                                            "UPDATE scan_tasks SET conversation_id=:conv WHERE id=:id"
+                                        ), {"conv": conv_id, "id": task_id})
+                                        await _csess.commit()
+                                except Exception:
+                                    pass
                         except Exception:
                             pass
                     # ══ 第二次 LLM 调用（带 tools）══

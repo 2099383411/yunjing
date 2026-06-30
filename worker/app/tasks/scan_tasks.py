@@ -32,6 +32,8 @@ from tasks.scan_actions import (
     _phase_krb_scan, _phase_ad_enum, _phase_code_scan, _phase_threat_model,
 )
 
+from tasks.scan_monitor import monitor_loop
+
 # ═══════════════════════════════════════════════════════════
 #  扫描执行主入口（Celery 任务注册 → 委托给 scan_decision）
 # ═══════════════════════════════════════════════════════════
@@ -264,3 +266,10 @@ def execute_single_phase(self, target, phase_name, context=None):
     except Exception as e:
         _publish("phase-" + phase_name, "phase", {"phase": phase_name, "status": "failed", "data": {"error": str(e)}})
         return {"phase": phase_name, "status": "failed", "error": str(e)}
+
+
+# ─── 启动 Monitor Agent ──────────────────────────
+import threading
+_monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
+_monitor_thread.start()
+logger.info("[Monitor] Monitor Agent 已启动")
