@@ -17,7 +17,7 @@ from app.api.skills import BUILTIN_SKILLS
 from app.config import settings
 from app.models.setting import SystemSetting
 from app.api.chat_helpers import SYSTEM_PROMPT
-from app.api.chat_stream import chat_stream
+from app.api.chat_stream import chat_stream, _pending_tool_calls
 
 router = APIRouter()
 
@@ -206,3 +206,90 @@ async def simple_send(data: dict, user: User = Depends(optional_user)):
         "type": "scan" if task_id else "text",
         "tool_calls_executed": len(all_tool_results),
     }
+
+
+# ═══════════════════════════════════════════════════════════
+#  Suggestion 确认 API
+# ═══════════════════════════════════════════════════════════
+
+
+@router.post("/suggestions/respond")
+async def respond_to_suggestion(data: dict):
+    """用户对工具调用建议的回应（确认/否决/修改）"""
+    action = data.get("type", "")  # "confirm", "reject", "modify"
+    tool_call_id = data.get("tool_call_id", "")
+    params = data.get("params", None)
+
+    # 从 _pending_tool_calls 中查找所属 conv（遍历所有 conv）
+    pending_conv_id: str | None = None
+    pending_tc = None
+    for cid, tcs in _pending_tool_calls.items():
+        for tc in tcs:
+            if tc.get("id") == tool_call_id or tc.get("id", "").startswith(tool_call_id):
+                pending_conv_id = cid
+                pending_tc = tc
+                break
+        if pending_conv_id:
+            break
+
+    if not pending_tc or not pending_conv_id:
+        return {"status": "error", "message": "该建议已过期或不存在"}
+
+    if action == "confirm":
+        # 执行工具
+        try:
+            result_str = await execute_tool_call(pending_tc)
+        except Exception as e:
+            return {"status": "error", "message": f"工具执行失败: {str(e)}"}
+
+        # 把结果写入 messages（写入 DB）
+        try:
+            async with AsyncSessionLocal() as sess:
+                # 保存 tool 结果
+                sess.add(Message(
+                    id=str(uuid.uuid4()), conversation_id=pending_conv_id,
+                    role="tool", content=result_str, tool_call_id=pending_tc.get("id", tool_call_id),
+                ))
+                conv = await sess.get(Conversation, pending_conv_id)
+                if conv:
+                    conv.updated_at = datetime.utcnow()
+                await sess.commit()
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to save confirmed tool result: {e}")
+
+        # 清除 pending
+        _pending_tool_calls.pop(pending_conv_id, None)
+
+        return {"status": "ok", "result": result_str, "message": "工具已执行"}
+
+    elif action == "reject":
+        _pending_tool_calls.pop(pending_conv_id, None)
+        return {"status": "ok", "message": "已否决"}
+
+    elif action == "modify":
+        if params:
+            pending_tc["function"]["arguments"] = json.dumps(params, ensure_ascii=False)
+        try:
+            result_str = await execute_tool_call(pending_tc)
+        except Exception as e:
+            return {"status": "error", "message": f"工具执行失败: {str(e)}"}
+
+        try:
+            async with AsyncSessionLocal() as sess:
+                sess.add(Message(
+                    id=str(uuid.uuid4()), conversation_id=pending_conv_id,
+                    role="tool", content=result_str, tool_call_id=pending_tc.get("id", tool_call_id),
+                ))
+                conv = await sess.get(Conversation, pending_conv_id)
+                if conv:
+                    conv.updated_at = datetime.utcnow()
+                await sess.commit()
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to save modified tool result: {e}")
+
+        _pending_tool_calls.pop(pending_conv_id, None)
+        return {"status": "ok", "result": result_str, "message": "已修改并执行"}
+
+    return {"status": "error", "message": f"未知操作类型: {action}"}

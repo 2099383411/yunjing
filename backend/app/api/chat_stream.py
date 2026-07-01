@@ -27,6 +27,20 @@ _pending_tool_calls: dict[str, list[dict]] = {}  # conv_id → pending tool_call
 CONFIRM_KEYWORDS = ["干", "好", "确认", "可以", "试试", "来吧", "yes", "do it", "y", "是", "ok", "好的", "行", "中", "搞"]
 REJECT_KEYWORDS = ["不", "不用", "否决", "算了", "no", "n", "不干", "不要", "不了", "别", "取消"]
 
+# ── 工具自动执行 vs 需确认 ──
+_AUTO_EXECUTE_TOOLS = {
+    "start_scan", "_action_port_scan", "_action_service_detect",
+    "_action_vuln_scan", "_action_dir_bruteforce", "_action_web_fingerprint",
+    "_action_full_port_scan", "check_tool", "search_kali_tools", "run_tool",
+    "get_task_status", "get_task_vulnerabilities", "execute_scan_phase", "get_tools_status",
+}
+
+_CONFIRM_REQUIRED_TOOLS = {
+    "_action_exploit", "_action_post_exploit", "_action_sql_injection",
+    "_action_auth_bypass", "_action_credential_test", "_action_ssh_bruteforce",
+    "exploit", "upload_payload", "reverse_shell",
+}
+
 
 async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
     """对话式渗透 — 每次消息都是一次交互（SSE 流式版本）"""
@@ -294,42 +308,154 @@ async def chat_stream(conv_id, data, user, db, llm_adapter, TOOLS):
                         yield f"data: {json.dumps({'token': '', 'done': True})}\\n\\n"
                         return
 
-                    # ── 对话决策模式：建议→等待用户确认 ──
-                    # 1. 保存 assistant 消息（含 tool_calls）到 messages 和 DB
-                    asst_content = (full_content or "") or _tool_summary(tool_calls_data)
-                    asst_dict = {
-                        "role": "assistant",
-                        "content": asst_content,
-                        "tool_calls": tool_calls_data,
-                    }
-                    if reasoning_content:
-                        asst_dict["reasoning_content"] = reasoning_content
-                    messages.append(asst_dict)
-                    try:
-                        async with AsyncSessionLocal() as _save_sess:
-                            _save_sess.add(Message(
-                                id=str(uuid.uuid4()), conversation_id=conv_id,
-                                role="assistant", content=asst_content, tool_calls=tool_calls_data,
-                            ))
-                            await _save_sess.commit()
-                    except Exception as e:
-                        logger.error(f"Failed to save assistant with tool_calls: {e}", exc_info=True)
+                    # ── 对话决策模式：自动执行 vs 需要确认 ──
+                    # 判断是否需要用户确认
+                    needs_confirm = any(
+                        tc["function"]["name"] in _CONFIRM_REQUIRED_TOOLS
+                        for tc in tool_calls_data
+                    )
 
-                    # 2. 为每个 tool call 吐出 suggestion 事件
-                    for tc in tool_calls_data:
-                        tc_name = tc["function"]["name"]
+                    if not needs_confirm:
+                        # ── 自动执行路径（扫描/信息收集类工具） ──
+                        # 1. 保存 assistant 消息（含 tool_calls）到 messages 和 DB
+                        asst_content = (full_content or "") or _tool_summary(tool_calls_data)
+                        asst_dict = {
+                            "role": "assistant",
+                            "content": asst_content,
+                            "tool_calls": tool_calls_data,
+                        }
+                        if reasoning_content:
+                            asst_dict["reasoning_content"] = reasoning_content
+                        messages.append(asst_dict)
                         try:
-                            tc_args = json.loads(tc["function"]["arguments"])
-                        except:
-                            tc_args = {}
-                        yield f"data: {json.dumps({'type': 'suggestion', 'tool': tc_name, 'params': tc_args, 'tool_call_id': tc.get('id', '')})}\n\n"
+                            async with AsyncSessionLocal() as _save_sess:
+                                _save_sess.add(Message(
+                                    id=str(uuid.uuid4()), conversation_id=conv_id,
+                                    role="assistant", content=asst_content, tool_calls=tool_calls_data,
+                                ))
+                                await _save_sess.commit()
+                        except Exception as e:
+                            logger.error(f"Failed to save assistant with tool_calls: {e}", exc_info=True)
 
-                    # 3. 存储 pending，等用户下一次消息确认
-                    _pending_tool_calls[conv_id] = tool_calls_data
+                        # 2. 执行工具并发送事件
+                        tool_results = []
+                        for tc in tool_calls_data:
+                            tc_name = tc["function"]["name"]
+                            try:
+                                tc_args = json.loads(tc["function"]["arguments"])
+                            except:
+                                tc_args = {}
+                            yield f"data: {json.dumps({'type': 'tool_call', 'name': tc_name, 'arguments': tc_args})}\n\n"
+                            tc_result = await execute_tool_call(tc)
+                            yield f"data: {json.dumps({'type': 'tool_result', 'name': tc_name, 'result': json.loads(tc_result) if isinstance(tc_result, str) else tc_result})}\n\n"
+                            tool_results.append({"tool_call_id": tc["id"], "content": tc_result})
 
-                    # 4. 结束当前 SSE 流
-                    yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-                    return
+                        # 3. 添加工具结果到 messages
+                        for r in tool_results:
+                            messages.append({"role": "tool", "tool_call_id": r["tool_call_id"], "content": r["content"]})
+
+                        # 4. 保存工具结果到 DB
+                        try:
+                            async with AsyncSessionLocal() as _save_sess:
+                                for r in tool_results:
+                                    _save_sess.add(Message(
+                                        id=str(uuid.uuid4()), conversation_id=conv_id,
+                                        role="tool", content=r["content"], tool_call_id=r["tool_call_id"],
+                                    ))
+                                await _save_sess.commit()
+                        except Exception as e:
+                            logger.error(f"Failed to save tool results: {e}", exc_info=True)
+
+                        # 5. 继续 LLM 流式分析（带工具结果的新一轮对话）
+                        full_content = ""
+                        reasoning_content = None
+                        tool_calls_data = None
+                        _analysis_done = False
+
+                        async for _chunk2 in llm_adapter.chat_stream(messages=messages, tools=TOOLS):
+                            _choices2 = _chunk2.get("choices", [])
+                            if not _choices2:
+                                continue
+                            _choice2 = _choices2[0]
+                            _delta2 = _choice2.get("delta", {})
+                            _finish2 = _choice2.get("finish_reason")
+
+                            if _delta2.get("reasoning_content"):
+                                if _delta2["reasoning_content"]:
+                                    _rc = _delta2["reasoning_content"]
+                                    reasoning_content = (reasoning_content or "") + _rc
+                                    yield f"data: {json.dumps({'type': 'reasoning', 'content': _rc})}\n\n"
+                                continue
+
+                            if _delta2.get("tool_calls"):
+                                # 分析阶段再次请求工具调用 → 简单跳过，避免无限循环
+                                _analysis_done = True
+                                break
+
+                            _content2 = _delta2.get("content", "")
+                            if _content2:
+                                full_content += _content2
+                                yield f"data: {json.dumps({'token': _content2, 'done': False})}\n\n"
+
+                            if _finish2 == "stop":
+                                _analysis_done = True
+                                break
+
+                        # 6. 保存最终分析结果
+                        if full_content:
+                            try:
+                                async with AsyncSessionLocal() as _save_sess:
+                                    _save_sess.add(Message(
+                                        id=str(uuid.uuid4()), conversation_id=conv_id,
+                                        role="assistant", content=full_content, tool_calls=None,
+                                    ))
+                                    _conv2 = await _save_sess.get(Conversation, conv_id)
+                                    if _conv2:
+                                        _conv2.updated_at = datetime.utcnow()
+                                    await _save_sess.commit()
+                            except Exception as e:
+                                logger.error(f"Failed to save analysis: {e}", exc_info=True)
+
+                        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+                        return
+
+                    else:
+                        # ── 需要确认路径（利用/渗透类工具） ──
+                        # 1. 保存 assistant 消息（含 tool_calls）到 messages 和 DB
+                        asst_content = (full_content or "") or _tool_summary(tool_calls_data)
+                        asst_dict = {
+                            "role": "assistant",
+                            "content": asst_content,
+                            "tool_calls": tool_calls_data,
+                        }
+                        if reasoning_content:
+                            asst_dict["reasoning_content"] = reasoning_content
+                        messages.append(asst_dict)
+                        try:
+                            async with AsyncSessionLocal() as _save_sess:
+                                _save_sess.add(Message(
+                                    id=str(uuid.uuid4()), conversation_id=conv_id,
+                                    role="assistant", content=asst_content, tool_calls=tool_calls_data,
+                                ))
+                                await _save_sess.commit()
+                        except Exception as e:
+                            logger.error(f"Failed to save assistant with tool_calls: {e}", exc_info=True)
+
+                        # 2. 为每个 tool call 吐出 suggestion 事件
+                        for tc in tool_calls_data:
+                            tc_name = tc["function"]["name"]
+                            try:
+                                tc_args = json.loads(tc["function"]["arguments"])
+                            except:
+                                tc_args = {}
+                            yield f"data: {json.dumps({'type': 'suggestion', 'tool': tc_name, 'params': tc_args, 'tool_call_id': tc.get('id', '')})}\n\n"
+
+                        # 3. 存储 pending，等用户下一次消息确认
+                        _pending_tool_calls[conv_id] = tool_calls_data
+
+                        # 4. 结束当前 SSE 流
+                        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+                        return
 
                 if finish == "stop":
                     break
