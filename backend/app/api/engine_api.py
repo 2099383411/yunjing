@@ -88,6 +88,7 @@ async def engine_state():
             "vector_store": rag.health(),
         }
     except Exception as e:
+        import traceback
         logger.error(f"[扫描回调] 失败: {e}\n{traceback.format_exc()}")
         return {"status": "ok", "message": "processed (with warnings)"}
 
