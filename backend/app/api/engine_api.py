@@ -78,7 +78,7 @@ async def engine_state():
         from app.engine.vector_store import RAGEngine
         le = LearningEngine(storage_path=_LEARNING_PATH)
         rag = RAGEngine()
-        exp_count = len(le.data.get('experiences', le.data.get('experiments', le.data.get('knowledge', []))))
+        exp_count = len(le._data.get('experiences', le._data.get('experiments', le._data.get('knowledge', []))))
         return {
             "status": "ok",
             "experience": {
